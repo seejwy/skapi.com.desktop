@@ -56,13 +56,6 @@ div(v-else-if="state?.user" :loading="isSaving || null")
     .settingsWrapper.delete     
         div(@click="openDeletePopup") Delete Your Account
             Icon(style="height: 20px; width: 20px; margin-left: 8px;") trash
-    Transition(name="toast")
-        .toast(v-if="state.user && !state.user.email_verified && state.showVerificationNotification")
-            Icon warning_bell
-            .title Email Verfication is Needed
-            div
-            .body Please verify your email to prevent your services from shutting down.
-            Icon.close(@click="state.setVerificationDelay") X2
     sui-overlay(ref="passwordOverlay" style="background: rgba(0, 0, 0, 0.6);")
         ChangePassword(@close="passwordOverlay.close()")
     sui-overlay(ref="emailOverlay" style="background: rgba(0, 0, 0, 0.6);")

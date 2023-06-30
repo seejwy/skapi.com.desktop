@@ -103,7 +103,7 @@ import { state, skapi } from '@/main';
 import { localeName, dateFormat, getSize } from '@/helper/common';
 import { useRoute, useRouter } from 'vue-router';
 
-import EditService from '@/components/EditService.vue';
+import EditService from '@/views/Service/EditService.vue';
 import Icon from '@/components/Icon.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 

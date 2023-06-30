@@ -27,7 +27,6 @@ div(v-else-if="state?.user" :loading="isSaving || null")
                         Icon warning
                         span(v-if="state.user.email_verified") Verified
                         span(v-else) Unverified
-                    .error(v-if="isVerifyErrorMessage") You have exceeded the number of tries. Please try again later.
             .actions(v-if="!state.user.email_verified" @click="openVerifyEmail")
                 span Verify Email
             hr   
@@ -99,7 +98,6 @@ let settings = ref({
     name: '',
     email: ''
 });
-const isVerifyErrorMessage = ref(false);
 
 const deleteAccountOverlay = ref(null);
 const passwordOverlay = ref(null);

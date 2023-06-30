@@ -53,7 +53,7 @@ import { state, skapi } from '@/main';
 import { dateFormat, localeName } from '@/helper/common';
 import { useRoute, useRouter } from 'vue-router';
 
-import NewService from '@/components/NewService.vue';
+import NewService from '@/views/Main/NewService.vue';
 import FeedBackForm from '@/views/Main/FeedBackForm.vue';
 import Icon from '@/components/Icon.vue';
 

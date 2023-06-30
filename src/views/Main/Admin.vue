@@ -32,13 +32,6 @@ div(v-else-if="state?.user")
         div(style="position: absolute; width: 100%;")
             .title No Services
             span Get started by creating a new service.
-    Transition(name="toast")
-        .toast(v-if="state.user && !state.user.email_verified && state.showVerificationNotification")
-            Icon warning_bell
-            .title Email Verfication is Needed
-            div
-            .body Please verify your email to prevent your services from shutting down.
-            Icon.close(@click="state.setVerificationDelay") X2
     sui-overlay(v-if="isOpen" ref="newServiceWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="closeNewServiceWindow")
         div.overlay
             NewService(@close="closeNewServiceWindow")

@@ -99,7 +99,7 @@ import { state, skapi } from '@/main';
 import { dateFormat, groupArray } from '@/helper/common';
 import { useRoute, useRouter } from 'vue-router';
 
-import RecordSearch from '@/components/RecordSearch.vue';
+import RecordSearch from '@/views/Service/Records/RecordSearch.vue';
 import ViewRecord from '@/views/Service/Records/ViewRecord.vue';
 import Icon from '@/components/Icon.vue';
 

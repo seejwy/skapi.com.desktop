@@ -103,7 +103,7 @@ import { state, skapi } from '@/main';
 import { getSize, dateFormat, groupArray } from '@/helper/common.js';
 import { useRoute, useRouter } from 'vue-router';
 import { tableList, recordTables, refreshTables, getMoreRecords } from '@/helper/records.js';
-import RecordSearch from '@/components/RecordSearch.vue';
+import RecordSearch from '@/views/Service/Records/RecordSearch.vue';
 import ViewRecord from '@/views/Service/Records/ViewRecord.vue';
 import Icon from '@/components/Icon.vue';
 
@@ -259,9 +259,9 @@ function getTables() {
 }
 
 // get tables on created (if not already fetched)
-console.log(recordTables.value)
+// console.log(recordTables.value)
 if (!recordTables.value) {
-    console.log("Tables empty")
+    // console.log("Tables empty")
     getTables();
 }
 

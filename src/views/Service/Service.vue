@@ -45,6 +45,27 @@ template(v-else)
                         span(v-if="service[setting.key] > 0") Enabled 
                         span(v-else) Disabled
                     .value(v-else) {{  service[setting.key] || '-' }}
+
+    .container 
+        .innerContainer 
+            .titleActionsWrapper
+                .titleWrapper
+                    Icon service
+                    h2 Connect Subdomain
+                .actions(@click="connect" :class="{'disabled': !state.user.email_verified ? true : null}")
+                    Icon pencil
+                    span Edit
+            .noDomains(v-if="!domain")
+                div
+                    .title No Sub-Domain
+                    p No subdomains are associated.
+            .domainGrid(v-else)
+                .domainGridItem(v-for="domain in domainGrid")
+                    .name
+                        span {{ domain.name }}
+                    .value
+                        span {{ domain.value }}
+                
     .container
         .innerContainer.services
             .titleActionsWrapper
@@ -75,6 +96,9 @@ template(v-else)
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
             EditService(@close="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
+    sui-overlay(v-if="isConnect" ref="connectWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; connectWindow.close(()=>isConnect = false)}")
+        div.overlay
+            ConnectDomain(@close="async()=>{await state.blockingPromise; connectWindow.close(()=>isConnect = false)}")
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
         .title
@@ -104,6 +128,7 @@ import { localeName, dateFormat, getSize } from '@/helper/common';
 import { useRoute, useRouter } from 'vue-router';
 
 import EditService from '@/views/Service/EditService.vue';
+import ConnectDomain from '@/views/Service/ConnectDomain.vue';
 import Icon from '@/components/Icon.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 
@@ -120,7 +145,9 @@ const deleteErrorOverlay = ref(null);
 const confirmationCode = ref('');
 const deleteErrorMessage = ref('');
 const isEdit = ref(false);
+const isConnect = ref(false);
 const isDisabled = ref(false);
+const domain = ref(false);
 
 const informationGrid = reactive([
     {
@@ -197,9 +224,25 @@ const settingGrid = reactive([
     },
 ]);
 
+const domainGrid = reactive([
+    {
+        name: 'Name',
+        key: 'name'
+    },
+    {
+        name: 'Value',
+        key: 'value'
+    }
+])
+
 const edit = () => {
     if(!state.user.email_verified) return false;
     isEdit.value = true;
+}
+
+const connect = () => {
+    if(!state.user.email_verified) return false;
+    isConnect.value = true;
 }
 
 const deleteServiceAsk = () => {
@@ -401,6 +444,46 @@ watch(() => isEdit.value, async () => {
             justify-self: flex-end;
         }
     }  
+}
+
+.noDomains {
+    color: rgba(255, 255, 255, 0.4);
+    padding-bottom: 35px;
+    margin: 0 -20px -24px -20px;
+    border-radius: 0 0 8px 8px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    opacity: 0.6;
+
+    .title {
+        font-size: 28px;
+    }
+
+    p {
+        font-size: 14px;
+        margin: 20px 0 0 0;
+        color: rgba(255, 255, 255, 0.4);
+    }
+}
+
+.domainGrid {
+    display: grid;
+    column-gap: 12px;
+    row-gap: 28px;
+    // grid-template-columns: repeat(4, calc(25% - 30px)) 72px;
+    grid-template-columns: calc(25% - 4px) calc(50% - 4px) calc(25% - 4px);
+
+    &Item {
+        .name {
+            font-size: 14px;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+    }
 }
 
 .serviceGrid {

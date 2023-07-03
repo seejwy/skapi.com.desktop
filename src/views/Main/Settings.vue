@@ -226,13 +226,108 @@ watch(() => state.user, async (user) => {
     }
 }
 
-.settings {
-    display: grid;
-    grid-template-columns: auto 1fr min-content;
-    align-items: center;
-    column-gap: 80px;
+// .settings {
+//     display: grid;
+//     grid-template-columns: auto 1fr min-content;
+//     align-items: center;
+//     column-gap: 80px;
 
+//     &>.title {
+//         font-weight: bold;
+//         padding: 28px 0;
+//         color: rgba(0, 0, 0, .65);
+//         white-space: nowrap;
+//     }
+
+//     .value {
+//         &>span {
+//             display: inline-block;
+//             margin-right: 8px;
+//         }
+//     }
+
+//     .emailStatus {
+//         display: inline-block;
+
+//         span {
+//             vertical-align: middle;
+//         }
+
+//         svg {
+//             margin-right: 4px;
+//         }
+
+//         &.verified {
+//             color: #5AD858;
+//         }
+
+//         &.unverified {
+//             color: #FF8D3B;
+//         }
+//     }
+
+//     .actions {
+//         justify-self: end;
+//         color: var(--primary-color);
+//         font-weight: bold;
+//         cursor: pointer;
+//         white-space: nowrap;
+
+//         .save,
+//         .cancel {
+//             display: inline-block;
+//             font-weight: bold;
+//         }
+
+//         .cancel {
+//             margin-right: 28px;
+//             color: #F04E4E;
+//         }
+//     }
+
+//     .value {
+//         label {
+//             display: flex;
+//             gap: 7px;
+
+//             sui-input {
+//                 flex-shrink: 0;
+//                 margin-top: calc((1.5em - 16px) / 2);
+//             }
+
+//             span {
+//                 line-height: 1.5;
+//             }
+//         }
+
+//         .actions {
+//             text-align: right;
+//             margin-top: 28px;
+//         }
+
+//         &>sui-input {
+//             width: 100%;
+//         }
+//     }
+
+//     hr {
+//         grid-column: span 3;
+//         width: 100%;
+//         border: 1px solid rgba(0, 0, 0, 0.04);
+//         box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.06);
+//     }
+
+//     .submit {
+//         grid-column: span 3;
+//         justify-self: end;
+//         padding-top: 28px;
+//     }
+// }
+
+.settings {
     &>.title {
+        min-width: 200px;
+        display: inline-block;
         font-weight: bold;
         padding: 28px 0;
         color: rgba(0, 0, 0, .65);
@@ -240,8 +335,8 @@ watch(() => state.user, async (user) => {
     }
 
     .value {
+        display: inline-block;
         &>span {
-            display: inline-block;
             margin-right: 8px;
         }
     }
@@ -267,11 +362,11 @@ watch(() => state.user, async (user) => {
     }
 
     .actions {
-        justify-self: end;
+        display: inline-block;
         color: var(--primary-color);
         font-weight: bold;
         cursor: pointer;
-        white-space: nowrap;
+        // white-space: nowrap;
 
         .save,
         .cancel {
@@ -311,15 +406,13 @@ watch(() => state.user, async (user) => {
     }
 
     hr {
-        grid-column: span 3;
         width: 100%;
         border: 1px solid rgba(0, 0, 0, 0.04);
         box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.06);
     }
 
     .submit {
-        grid-column: span 3;
-        justify-self: end;
+        text-align: right;
         padding-top: 28px;
     }
 }

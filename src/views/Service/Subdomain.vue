@@ -1,27 +1,47 @@
 <template lang="pug">
 .overlayContainer(v-if="service" :loading="isDisabled || null")
-    form(@submit.prevent="func")
-        .overlayContainerTitle Connect Subdomain
+    form(@submit.prevent="create" @keydown.enter.prevent="" action="")
+        .overlayContainerTitle Create Subdomain
         .input
-            label Name
-            sui-input(type="text" placeholder="Name of Service" :value="domainName" @input="(e) => domainName = e.target.value" required)
-        .input
-            label Value
-            sui-input(type="text" :value="value" @input="(e) => value = e.target.value" required @change="validateCors")
+            label Subdomain
+            sui-input(type="text" :value="subDomain" @input="(e) => subDomain = e.target.value" required)
         sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
         SubmitButton(:loading="isDisabled") Save
 </template>
 <!-- script below -->
 <script setup>
-import { ref } from 'vue';
+import { inject, ref } from 'vue';
+import { state, skapi } from '@/main';
+
+import Icon from '@/components/Icon.vue';
+import SubmitButton from '@/components/SubmitButton.vue';
 
 const emit = defineEmits(['close']);
-let isDisabled = ref(false);
 
-const func = () => {
-    return new Promise((res, rej) => {
-        setTimeout(() => res(true), 1000);
-    })
+let service = inject('service');
+let isDisabled = ref(false);
+const subDomain = ref('');
+
+subDomain.value = service.value.subdomain;
+
+const create = async() => {
+    isDisabled.value = true;
+
+    try {
+        await skapi.registerSubdomain({
+            service: service.value.service,
+            subdomain: service.value.subdomain,
+            exec: 'register'
+        }).then(() => {
+            service.value.subdomain = subDomain.value;
+            isDisabled.value = false;
+        })
+    } catch(e) {
+        console.log(e);
+        isDisabled.value = false;
+    }
+
+    emit('close', '');
 }
 </script>
 

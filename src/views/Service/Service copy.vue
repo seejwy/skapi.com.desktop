@@ -17,8 +17,7 @@ template(v-else)
                     Icon information
                     h2 Service Information
                 .actions(@click="deleteServiceAsk" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    Icon(style="width: 20px; height: 20px;") trash
-                    span Delete Service
+                    span(style="font-size:14px") Delete Service
             .informationGrid
                 .informationGridItem(v-for="info in informationGrid" :class="[info.span ? `span-${info?.span}` : '']")
                     .name {{ info.name }}
@@ -47,6 +46,29 @@ template(v-else)
                         span(v-else) Disabled
                     .value(v-else) {{  service[setting.key] || '-' }}
 
+    .container 
+        .innerContainer 
+            .titleActionsWrapper(style="margin-bottom: 0;")
+                .titleWrapper
+                    Icon service
+                    h2 Subdomain
+                .actions(v-if="domain" @click="create" :class="{'disabled': !state.user.email_verified ? true : null}")
+                    Icon pencil
+                    span Create
+                .actions(v-else @click="deleteSubdomain" :class="{'disabled': !state.user.email_verified ? true : null}")
+                    Icon trash
+                    span Delete Subdomain
+            //- .noDomains(v-if="!domain")
+            //-     div
+            //-         .title No Sub-Domain
+            //-         p No subdomains are associated.
+            //- .domainGrid(v-else)
+            //-     .domainGridItem(v-for="domain in domainGrid")
+            //-         .name
+            //-             span {{ domain.name }}
+            //-         .value
+            //-             span {{ domain.value }}
+                
     .container
         .innerContainer.services
             .titleActionsWrapper
@@ -74,48 +96,12 @@ template(v-else)
                             span Email System
                         .body Users are data that your service user's will store and read from your service database. 
                     .goto Go to Mail >
-
-    .container 
-        .innerContainer 
-            .titleActionsWrapper(v-if="!domain" style="margin-bottom: 0;")
-                .titleWrapper
-                    Icon domain
-                    h2 Subdomain
-                .actions(@click="create" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    Icon pencil
-                    span Create
-            .titleActionsWrapper(v-else)
-                .titleWrapper
-                    Icon domain
-                    h2 Subdomain
-                .actions(@click="deleteSubdomainAsk" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    Icon(style="width: 20px; height: 20px;") trash
-                    span Delete Subdomain
-            .domainGrid(v-if="domain")
-                .domainGridItem
-                    .name
-                        span Subdomain
-                    .value
-                        span {{ service.subdomain }}.skapi.com
-                    a(:href="`http://${service.subdomain}.skapi.com`" target="_blank")
-                        Icon link
-
-    .container(v-if="domain")
-        .innerContainer 
-            .titleActionsWrapper(style="margin-bottom: 0;")
-                .titleWrapper
-                    Icon list
-                    h2 Upload Files List
-                .actions(@click="modify" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    Icon pencil
-                    span Modify
-
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
             EditService(@close="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
-    sui-overlay(v-if="isCreate" ref="subdomainWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; subdomainWindow.close(()=>isCreate = false)}")
+    sui-overlay(v-if="isConnect" ref="connectWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; connectWindow.close(()=>isConnect = false)}")
         div.overlay
-            Subdomain(@close="async()=>{await state.blockingPromise; subdomainWindow.close(()=>isCreate = false)}")
+            ConnectDomain(@close="async()=>{await state.blockingPromise; connectWindow.close(()=>isConnect = false)}")
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
         .title
@@ -128,18 +114,6 @@ sui-overlay(ref="deleteConfirmOverlay")
         .foot
             sui-button(type="button" @click="()=> { deleteConfirmOverlay.close(); confirmationCode = ''}").textButton Cancel
             SubmitButton(:loading="isDisabled" class="textButton" backgroundColor="51, 51, 51") Delete
-sui-overlay(ref="deleteSubdomainOverlay")
-    form.popup(@submit.prevent="deleteSubdomain" action="" :loading="isDisabled || null")
-        .title
-            Icon warning
-            div Deleting Subdomain?
-        .body 
-            p Are you sure you want to delete "{{ service.subdomain }}" permanently? #[br] You will not be able to undo this action. #[br] And all relevant data will be deleted.
-            p To confirm deletion, enter Service ID #[br] #[span(style="font-weight: bold") {{ service.service }}]
-            sui-input(:placeholder="service.service" :value="confirmationCode" @input="(e) => confirmationCode = e.target.value")
-        .foot
-            sui-button(type="button" @click="()=> { deleteSubdomainOverlay.close(); confirmationCode = ''}").textButton Cancel
-            SubmitButton(:loading="isDisabled" class="textButton" backgroundColor="51, 51, 51") Delete
 sui-overlay(ref="deleteErrorOverlay")
     .popup
         .title
@@ -151,13 +125,13 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount } from 'vue';
+import { inject, reactive, ref, watch, nextTick } from 'vue';
 import { state, skapi } from '@/main';
 import { localeName, dateFormat, getSize } from '@/helper/common';
 import { useRoute, useRouter } from 'vue-router';
 
 import EditService from '@/views/Service/EditService.vue';
-import Subdomain from '@/views/Service/Subdomain.vue';
+import ConnectDomain from '@/views/Service/ConnectDomain.vue';
 import Icon from '@/components/Icon.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 
@@ -169,14 +143,12 @@ let pageTitle = inject('pageTitle');
 pageTitle.value = 'Service "' + service.value.name + '"'
 
 const settingWindow = ref(null);
-const subdomainWindow = ref(null);
 const deleteConfirmOverlay = ref(null);
-const deleteSubdomainOverlay = ref(null);
 const deleteErrorOverlay = ref(null);
 const confirmationCode = ref('');
 const deleteErrorMessage = ref('');
 const isEdit = ref(false);
-const isCreate = ref(false);
+const isConnect = ref(false);
 const isDisabled = ref(false);
 const domain = ref(false);
 
@@ -255,79 +227,57 @@ const settingGrid = reactive([
     },
 ]);
 
+const domainGrid = reactive([
+    {
+        name: 'Name',
+        key: 'name'
+    },
+    {
+        name: 'Value',
+        key: 'value'
+    }
+])
+
 const edit = () => {
-    if (!state.user.email_verified) return false;
+    if(!state.user.email_verified) return false;
     isEdit.value = true;
 }
 
-const create = () => {
-    if (!state.user.email_verified) return false;
-    isCreate.value = true;
+const connect = () => {
+    if(!state.user.email_verified) return false;
+    isConnect.value = true;
 }
 
 const deleteServiceAsk = () => {
-    if (!state.user.email_verified) return;
+    if(!state.user.email_verified) return;
     deleteConfirmOverlay.value.open();
-}
-
-const deleteSubdomainAsk = () => {
-    if (!state.user.email_verified) return;
-    deleteSubdomainOverlay.value.open();
 }
 
 const deleteService = () => {
     isDisabled.value = true;
-    if (confirmationCode.value !== service.value.service) {
+    if(confirmationCode.value !== service.value.service) {
         confirmationCode.value = '';
         deleteErrorMessage.value = "Your service code did not match.";
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+        if(deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         deleteErrorOverlay.value.open();
         isDisabled.value = false;
         return;
     }
 
     skapi.deleteService(service.value.service).then(() => {
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+        if(deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         router.replace('/admin');
     }).catch(() => {
         deleteErrorMessage.value = "Please disable your service before deleting it.";
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+        if(deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         deleteErrorOverlay.value.open();
-    }).finally(() => {
+    }).finally(() => {    
         confirmationCode.value = '';
         isDisabled.value = false;
     });
 }
 
-const deleteSubdomain = async() => {
-    isDisabled.value = true;
-    if (confirmationCode.value !== service.value.service) {
-        confirmationCode.value = '';
-        deleteErrorMessage.value = "Your service code did not match.";
-        if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-        deleteErrorOverlay.value.open();
-        isDisabled.value = false;
-        return;
-    }
-
-    try {
-        await skapi.registerSubdomain({
-            service: service.value.service,
-            subdomain: service.value.subdomain,
-            exec: 'remove'
-        }).then(() => {
-            domain.value = false;
-            isDisabled.value = false;
-        })
-    } catch(e) {
-        deleteErrorMessage.value = e.message;
-        if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-        deleteErrorOverlay.value.open();
-        isDisabled.value = false;
-    }
-}
-
-if (!service.value.hasOwnProperty('storage')) {
+if(!service.value.hasOwnProperty('storage')) {
     skapi.storageInformation(service.value.service).then((storage) => {
         service.value.storage = storage.cloud + storage.database + storage.email;
     });
@@ -335,38 +285,20 @@ if (!service.value.hasOwnProperty('storage')) {
 
 watch(() => isEdit.value, async () => {
     await nextTick();
-    if (isEdit.value) {
+    if(isEdit.value) {
         settingWindow.value.open();
     }
 });
-
-watch(() => isCreate.value, async () => {
-    await nextTick();
-    if (isCreate.value) {
-        subdomainWindow.value.open();
-    } else {
-        if (service.value.subdomain) {
-            domain.value = true;
-        }
-    }
-});
-
-onBeforeMount(() => {
-    if (service.value.subdomain) {
-        domain.value = true;
-    }
-})
 </script>
 
 <style lang="less" scoped>
 .container {
     margin: 0 0 40px 0;
 
-    .innerContainer {
+    .innerContainer {    
         padding: 40px;
         background: #434343;
         border-radius: 12px;
-
         .titleActionsWrapper {
             margin-bottom: 32px;
 
@@ -401,7 +333,7 @@ onBeforeMount(() => {
         justify-content: space-between;
         margin-bottom: 16px;
 
-        h2 {
+        h2 {        
             font-size: 20px;
             font-weight: normal;
         }
@@ -420,11 +352,9 @@ onBeforeMount(() => {
     .actions {
         cursor: pointer;
         user-select: none;
-
         svg {
             margin-right: 4px;
         }
-
         span {
             vertical-align: middle;
         }
@@ -465,7 +395,7 @@ onBeforeMount(() => {
 .settingGrid {
     display: flex;
     justify-content: space-between;
-
+    
     &Item {
         .name {
             font-size: 14px;
@@ -487,7 +417,7 @@ onBeforeMount(() => {
 .settingGrid {
     display: grid;
     column-gap: 12px;
-    row-gap: 28px;
+    row-gap:28px;
     grid-template-columns: repeat(4, calc(25% - 30px)) 72px;
 
     &Item {
@@ -507,7 +437,7 @@ onBeforeMount(() => {
             color: rgba(255, 255, 255, 0.85);
             word-break: break-all;
 
-            span {
+            span {    
                 vertical-align: middle;
             }
         }
@@ -516,7 +446,7 @@ onBeforeMount(() => {
             align-self: flex-end;
             justify-self: flex-end;
         }
-    }
+    }  
 }
 
 .noDomains {
@@ -543,32 +473,18 @@ onBeforeMount(() => {
 }
 
 .domainGrid {
-    &Item {
-        position: relative;
-        width: 100%;
-        background-color: rgba(255, 255, 255, 0.1);
-        padding: 24px;
-        border-radius: 8px;
+    display: grid;
+    column-gap: 12px;
+    row-gap: 28px;
+    // grid-template-columns: repeat(4, calc(25% - 30px)) 72px;
+    grid-template-columns: calc(25% - 4px) calc(50% - 4px) calc(25% - 4px);
 
+    &Item {
         .name {
             font-size: 14px;
             line-height: 1;
             color: rgba(255, 255, 255, 0.6);
             margin-bottom: 8px;
-        }
-
-        .value {
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.85);
-            word-break: break-all;
-        }
-
-        a {
-            position: absolute;
-            top: 50%;
-            right: 24px;
-            transform: translateY(-50%);
-            color: #fff;
         }
     }
 }
@@ -586,7 +502,6 @@ onBeforeMount(() => {
         background: rgba(255, 255, 255, 0.1);
         padding: 24px;
         border-radius: 8px;
-
         .content {
             display: flex;
             flex-direction: column;
@@ -597,13 +512,13 @@ onBeforeMount(() => {
                 margin-bottom: 28px;
                 font-size: 20px;
 
-                span {
-                    margin-left: 8px;
+                span {        
+                    margin-left: 8px;    
                     vertical-align: middle;
                 }
             }
 
-            .body {
+            .body {    
                 color: rgba(255, 255, 255, 0.85);
                 line-height: 1.5;
             }
@@ -617,7 +532,6 @@ onBeforeMount(() => {
             text-decoration: none;
         }
     }
-
     a.serviceGridItem {
         text-align: left;
         color: rgba(255, 255, 255, 0.85);
@@ -625,12 +539,10 @@ onBeforeMount(() => {
         text-decoration: none;
     }
 }
-
 sui-tooltip {
     margin-top: -7px;
     margin-left: 8px;
 }
-
 .indicator {
     position: relative;
     display: inline-block;
@@ -642,15 +554,13 @@ sui-tooltip {
     border: 0.3px solid #595959;
     box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.25), inset 1px 1px 2px rgba(255, 255, 255, 0.65);
     margin-right: 8px;
-
+    
     &.active {
         background: #5AD858;
     }
 }
-
 .overlay {
     padding: 16px;
-
     .close {
         position: absolute;
         top: 0;

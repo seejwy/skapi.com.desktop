@@ -77,7 +77,7 @@ template(v-else)
 
     .container 
         .innerContainer 
-            .titleActionsWrapper(v-if="!domain" style="margin-bottom: 0;")
+            .titleActionsWrapper(v-if="!service.subdomain" style="margin-bottom: 0;")
                 .titleWrapper
                     Icon domain
                     h2 Subdomain
@@ -88,7 +88,7 @@ template(v-else)
                 .titleWrapper
                     Icon domain
                     h2 Subdomain
-                .actions(@click="deleteSubdomainAsk" :class="{'disabled': !state.user.email_verified ? true : null}")
+                .actions(v-if="service.subdomain && !deleting" @click="deleteSubdomainAsk" :class="{'disabled': !state.user.email_verified ? true : null}")
                     Icon(style="width: 20px; height: 20px;") trash
                     span Delete Subdomain
             .domainGrid(v-if="domain")
@@ -99,6 +99,9 @@ template(v-else)
                         span {{ service.subdomain }}.skapi.com
                     a(:href="`http://${service.subdomain}.skapi.com`" target="_blank")
                         Icon link
+            .domainGrid.deleting(v-else-if="deleting") 
+                h3 Deleting subdomain ...
+                span It may take a few minutes for a subdomain to be deleted.
 
     .container(v-if="domain")
         .innerContainer 
@@ -179,6 +182,7 @@ const isEdit = ref(false);
 const isCreate = ref(false);
 const isDisabled = ref(false);
 const domain = ref(false);
+const deleting = ref(false);
 
 const informationGrid = reactive([
     {
@@ -316,8 +320,16 @@ const deleteSubdomain = async() => {
             subdomain: service.value.subdomain,
             exec: 'remove'
         }).then(() => {
-            domain.value = false;
-            isDisabled.value = false;
+            if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
+            if(domain.value) {
+                if(service.value.subdomain.includes('*')) {
+                    deleting.value = true;
+                    domain.value = false;
+                    isDisabled.value = false;
+                } else {
+                    deleting.value = false;
+                }
+            }
         })
     } catch(e) {
         deleteErrorMessage.value = e.message;
@@ -351,9 +363,26 @@ watch(() => isCreate.value, async () => {
     }
 });
 
+watch(() => service.value.subdomain, async () => {
+    await nextTick();
+    if (service.value.subdomain.includes('*')) {
+        deleting.value = true;
+        domain.value = false;
+    } else {
+        deleting.value = false;
+    }
+});
+
 onBeforeMount(() => {
     if (service.value.subdomain) {
         domain.value = true;
+
+        if (service.value.subdomain.includes('*')) {
+            deleting.value = true;
+            domain.value = false;
+        } else {
+            deleting.value = false;
+        }
     }
 })
 </script>
@@ -543,6 +572,20 @@ onBeforeMount(() => {
 }
 
 .domainGrid {
+    &.deleting {
+        text-align: center;
+        color:rgba(255,255,255,0.4);
+        padding-bottom: 30px;
+
+        h3 {
+            font-size:28px;
+            font-weight:500;
+            margin: 0 0 20px 0;
+        }
+        span {
+            font-size: 14px;
+        }
+    }
     &Item {
         position: relative;
         width: 100%;

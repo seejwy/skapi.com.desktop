@@ -104,21 +104,47 @@ template(v-else)
                 span It may take a few minutes for a subdomain to be deleted.
 
     .container(v-if="domain")
-        .innerContainer 
-            .titleActionsWrapper(style="margin-bottom: 0;")
+        .innerContainer    
+            .titleActionsWrapper
                 .titleWrapper
                     Icon list
-                    h2 Upload Files List
-                .actions(@click="modify" :class="{'disabled': !state.user.email_verified ? true : null}")
+                    h2 File List
+                .actions(@click="upload" :class="{'disabled': !state.user.email_verified ? true : null}")
                     Icon pencil
                     span Modify
+            .directoryName
+                Icon(@click="goUpDirectory") trash
+                span {{ currentDirectory }}
+            .filesContainer
+                //- template(v-if="isFetching")
+                //-     div Fetching
+                template(v-if="service?.files")
+                    template(v-for="(file, name) in directoryFiles")
+                        .file(v-if="file.type === 'folder'" @click="goto(currentDirectory+=name)")
+                            sui-input(type="checkbox")
+                            Icon check
+                            div {{ name }}
+                        .file(v-else)
+                            sui-input(type="checkbox")
+                            Icon X2
+                            a(:href="file.url" download) {{ name }}
+                template(v-else)
+                    div.noFiles
+                        div.title No Files
+                        p You have not uploaded any files
 
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
             EditService(@close="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
+
     sui-overlay(v-if="isCreate" ref="subdomainWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; subdomainWindow.close(()=>isCreate = false)}")
         div.overlay
             Subdomain(@close="async()=>{await state.blockingPromise; subdomainWindow.close(()=>isCreate = false)}")
+
+    sui-overlay(v-if="isUpload" ref="uploadWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
+        div.overlay
+            AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
+
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
         .title
@@ -163,6 +189,7 @@ import EditService from '@/views/Service/EditService.vue';
 import Subdomain from '@/views/Service/Subdomain.vue';
 import Icon from '@/components/Icon.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
+import AddFiles from '@/views/Service/AddFiles.vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -173,6 +200,7 @@ pageTitle.value = 'Service "' + service.value.name + '"'
 
 const settingWindow = ref(null);
 const subdomainWindow = ref(null);
+const uploadWindow = ref(null);
 const deleteConfirmOverlay = ref(null);
 const deleteSubdomainOverlay = ref(null);
 const deleteErrorOverlay = ref(null);
@@ -180,9 +208,22 @@ const confirmationCode = ref('');
 const deleteErrorMessage = ref('');
 const isEdit = ref(false);
 const isCreate = ref(false);
+const isUpload = ref(false);
 const isDisabled = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
+
+const filesToUpload = ref(0);
+const folderUpload = ref(null);
+const fileUpload = ref(null);
+const fileList = ref({});
+const isComplete = ref(false);
+const directoryFiles = ref({});
+const isSaving = ref(false);
+const numberOfFailedUploads = ref(-1);
+const currentDirectory = ref('/');
+let abortUpload = '';
+const selectedFiles = ref([]);
 
 const informationGrid = reactive([
     {
@@ -269,6 +310,11 @@ const create = () => {
     isCreate.value = true;
 }
 
+const upload = () => {
+    if (!state.user.email_verified) return false;
+    isUpload.value = true;
+}
+
 const deleteServiceAsk = () => {
     if (!state.user.email_verified) return;
     deleteConfirmOverlay.value.open();
@@ -277,6 +323,287 @@ const deleteServiceAsk = () => {
 const deleteSubdomainAsk = () => {
     if (!state.user.email_verified) return;
     deleteSubdomainOverlay.value.open();
+}
+
+//upload File
+const addFileButtonHandler = () => {
+    const parent = fileUpload.value.click();
+}
+
+const addFolderButtonHandler = () => {
+    const parent = folderUpload.value.click();
+}
+
+const goto = (name) => {
+    getDirectory(name.slice(0, -1).split('/'));
+}
+
+const goUpDirectory = () => {
+    if (currentDirectory.value !== '/') {
+        let directory = currentDirectory.value.slice(0, -1).split('/');
+        console.log(directory);
+        directory.splice(-1);
+        getDirectory(directory);
+        currentDirectory.value = `${directory.join('/')}/`;
+    } else {
+        getDirectory();
+    }
+}
+
+const addFolders = (event) => {
+    if (isComplete.value) {
+        console.log({ isComplete: isComplete.value })
+        fileList.value = {}
+        isComplete.value = false
+    }
+    const files = event.target.files;
+    for (let file of files) {
+        fileList.value[file.webkitRelativePath] = {
+            file,
+            progress: 0
+        };
+        filesToUpload.value++;
+    }
+
+    folderUpload.value.value = '';
+}
+
+const addFiles = (event) => {
+    if (isComplete.value) {
+        fileList.value = {};
+        filesToUpload.value = 0;
+        isComplete.value = false;
+    }
+    const files = event.target.files;
+
+    for (let file of files) {
+        fileList.value[file.name] = {
+            file,
+            progress: 0
+        };
+        filesToUpload.value++;
+    }
+
+    fileUpload.value.value = '';
+}
+
+const uploadFiles = async () => {
+    console.log(filesToUpload.value);
+    if (filesToUpload.value <= 0) return false;
+    let formData = new FormData();
+
+    for (let key in fileList.value) {
+        formData.append(key, fileList.value[key].file, key);
+    }
+    isSaving.value = true;
+    try {
+        state.blockingPromise = await skapi.uploadFiles(formData, {
+            service: service.value.service,
+            request: 'host',
+            progress: (e) => {
+                if (abortUpload === e.currentFile.name && e.progress !== 100) {
+                    e.abort();
+                    fileList.value[e.currentFile.name].progress = false;
+                    abortUpload = '';
+                } else {
+                    if (e.failed.length > numberOfFailedUploads.value) {
+                        numberOfFailedUploads.value++;
+                        filesToUpload.value--;
+                    }
+                    let progress = e.progress;
+                    fileList.value[e.currentFile.name].abort = e.abort;
+                    fileList.value[e.currentFile.name].progress = e.progress;
+                    if (!fileList.value[e.currentFile.name].currentProgress) fileList.value[e.currentFile.name].currentProgress = 0;
+
+                    let change = setInterval(() => {
+                        if (fileList.value[e.currentFile.name].currentProgress < progress) {
+                            fileList.value[e.currentFile.name].currentProgress += 1;
+                        }
+                        if (fileList.value[e.currentFile.name].currentProgress === progress) {
+                            filesToUpload.value--;
+                            console.log(e.currentFile);
+                            service.value.files.list[e.currentFile.name] = {
+                                file: e.currentFile,
+                                progress: 0
+                            };
+                            clearInterval(change)
+                        }
+                    }, 5);
+                }
+            }
+        });
+    } catch (e) {
+        console.log({ e });
+    } finally {
+        isSaving.value = false;
+        isComplete.value = true;
+    }
+}
+
+const getDirectory = (directory) => {
+    if (!directory && service.value.hasOwnProperty('files')) {
+        directoryFiles.value = service.value.files.list;
+        return true;
+    }
+
+    function getCurrentDirectoryFiles(directory) {
+        let directoryFiles = service.value.files.list;
+        if (directory) {
+            for (let i = 1; i < directory.length; i++) {
+                directoryFiles = directoryFiles[`${directory[i]}/`].files.list;
+            }
+        }
+        return directoryFiles
+    }
+
+    if (service.value?.files) {
+        let directoryCheck = service.value.files.list;
+        for (let i = 1; i < directory.length; i++) {
+            directoryCheck = Object.keys(directoryCheck?.[`${directory[i]}/`]?.files.list).length ? directoryCheck?.[`${directory[i]}/`]?.files.list : null;
+        }
+        if (!directoryCheck) {
+            directoryFiles.value = {};
+        } else {
+            directoryFiles.value = getCurrentDirectoryFiles(directory);
+            console.log("File exists!", directoryCheck)
+            return true;
+        }
+    }
+
+    directoryFiles.value = {};
+
+    let params = {
+        service: service.value.service
+    }
+
+    if (directory) {
+        params.dir = `${directory.join('/')}/`;
+    }
+
+    skapi.listHostDirectory(params).then((files) => {
+        if (!service.value.hasOwnProperty('files')) {
+            service.value.files = {
+                endOfList: files.endOfList,
+                list: {}
+            }
+        }
+        // console.log(files);
+        for (let file of files.list) {
+            if (file.type === 'folder') {
+                let dir = file.name.substring(file.name.indexOf("/") + 1);
+
+                if (directory) {
+                    let currentDirectory = service.value;
+                    for (let i = 1; i < directory.length; i++) {
+                        currentDirectory = currentDirectory.files.list[`${directory[i]}/`]
+                    }
+                    let folderName = dir.slice(0, -1).split('/');
+
+                    currentDirectory.files.endOfList = files.endOfList;
+                    currentDirectory.files.list[`${folderName[folderName.length - 1]}/`] = {
+                        type: 'folder',
+                        name: `${folderName[folderName.length - 1]}/`,
+                        files: {
+                            endOfList: false,
+                            list: {}
+                        }
+                    };
+                    directoryFiles.value = currentDirectory.files.list;
+                } else {
+                    service.value.files.list[dir] = {
+                        type: 'folder',
+                        name: dir,
+                        files: {
+                            endOfList: false,
+                            list: {}
+                        }
+                    }
+                    directoryFiles.value = service.value.files.list
+                }
+            } else {
+                let name = file.name.substring(file.name.indexOf("/") + 1);
+                let subdomain = file.name.substring(0, file.name.indexOf("/"));
+                let url = `https://${subdomain}.skapi.com/${name}`
+
+                if (directory) {
+                    let currentDirectory = service.value;
+                    for (let i = 1; i < directory.length; i++) {
+                        currentDirectory = currentDirectory.files.list[`${directory[i]}/`]
+                    }
+
+                    currentDirectory.files.endOfList = files.endOfList;
+                    let nameArr = name.split('/');
+                    let fileName = nameArr[nameArr.length - 1]
+
+                    currentDirectory.files.list[fileName] = {
+                        type: 'file',
+                        name: name,
+                        url,
+
+                    };
+                    directoryFiles.value = currentDirectory.files.list;
+                } else {
+                    let nameArr = name.split('/');
+                    let fileName = nameArr[nameArr.length - 1]
+
+                    service.value.files.list[fileName] = {
+                        type: 'file',
+                        name: name,
+                        url,
+
+                    };
+                }
+            }
+        }
+    });
+}
+getDirectory();
+
+const onDrop = (event) => {
+    const readEntriesAsync = (item) => {
+        let reader = item.createReader();
+        reader.readEntries((contents) => {
+            for (let content of contents) {
+                if (content.isDirectory) {
+                    readEntriesAsync(content)
+                } else {
+                    getFileAsync(content, content.fullPath)
+                }
+            }
+        })
+    }
+
+    const getFileAsync = (item, path) => {
+        console.log(item, path);
+
+        item.file((file) => {
+            if (path) {
+                fileList.value[path?.substring(1)] = {
+                    file,
+                    progress: 0
+                };
+            } else {
+                // fileList[f.name] = file;
+                fileList.value[file.name] = {
+                    file,
+                    progress: 0
+                };
+            }
+            filesToUpload.value++;
+        });
+    }
+
+    let items = event.dataTransfer.items;
+    event.preventDefault();
+
+    for (let item of items) {
+        let content = item.webkitGetAsEntry();
+        if (content.isDirectory) {
+            readEntriesAsync(content);
+        } else {
+            getFileAsync(content);
+        }
+    }
 }
 
 const deleteService = () => {
@@ -303,7 +630,7 @@ const deleteService = () => {
     });
 }
 
-const deleteSubdomain = async() => {
+const deleteSubdomain = async () => {
     isDisabled.value = true;
     if (confirmationCode.value !== service.value.service) {
         confirmationCode.value = '';
@@ -320,18 +647,16 @@ const deleteSubdomain = async() => {
             subdomain: service.value.subdomain,
             exec: 'remove'
         }).then(() => {
-            if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-            if(domain.value) {
-                if(service.value.subdomain.includes('*')) {
-                    deleting.value = true;
-                    domain.value = false;
-                    isDisabled.value = false;
-                } else {
-                    deleting.value = false;
-                }
+            if (service.value.subdomain.includes('*')) {
+                deleting.value = true;
+            } else {
+                deleting.value = false;
             }
+            domain.value = false;
+            isDisabled.value = false;
+            deleteSubdomainOverlay.value.close();
         })
-    } catch(e) {
+    } catch (e) {
         deleteErrorMessage.value = e.message;
         if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
         deleteErrorOverlay.value.open();
@@ -356,20 +681,28 @@ watch(() => isCreate.value, async () => {
     await nextTick();
     if (isCreate.value) {
         subdomainWindow.value.open();
-    } else {
-        if (service.value.subdomain) {
-            domain.value = true;
-        }
     }
 });
 
-watch(() => service.value.subdomain, async () => {
+watch(() => isUpload.value, async () => {
     await nextTick();
-    if (service.value.subdomain.includes('*')) {
-        deleting.value = true;
-        domain.value = false;
+    if (isUpload.value) {
+        uploadWindow.value.open();
+    }
+});
+
+watch(() => service.value.subdomain, () => {
+    if(service.value.subdomain) {
+        domain.value = true;
+
+        if (service.value.subdomain.includes('*')) {
+            domain.value = false;
+            deleting.value = true;
+        } else {
+            deleting.value = false;
+        }
     } else {
-        deleting.value = false;
+        domain.value = false;
     }
 });
 
@@ -378,13 +711,16 @@ onBeforeMount(() => {
         domain.value = true;
 
         if (service.value.subdomain.includes('*')) {
-            deleting.value = true;
             domain.value = false;
+            deleting.value = true;
         } else {
             deleting.value = false;
         }
+    } else { 
+        domain.value = false;
     }
 })
+console.log(service.value.subdomain, service.value.service)
 </script>
 
 <style lang="less" scoped>
@@ -574,18 +910,20 @@ onBeforeMount(() => {
 .domainGrid {
     &.deleting {
         text-align: center;
-        color:rgba(255,255,255,0.4);
+        color: rgba(255, 255, 255, 0.4);
         padding-bottom: 30px;
 
         h3 {
-            font-size:28px;
-            font-weight:500;
+            font-size: 28px;
+            font-weight: 500;
             margin: 0 0 20px 0;
         }
+
         span {
             font-size: 14px;
         }
     }
+
     &Item {
         position: relative;
         width: 100%;
@@ -612,6 +950,272 @@ onBeforeMount(() => {
             right: 24px;
             transform: translateY(-50%);
             color: #fff;
+        }
+    }
+}
+
+.fileUploadArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+    border: 1px dashed #FFFFFF;
+    border-radius: 8px;
+    height: 100px;
+
+    sui-button {
+        vertical-align: middle;
+    }
+
+    &:only-child {
+        margin-bottom: 0;
+    }
+
+    &>div>* {
+        display: inline-block;
+
+        &:first-child {
+            margin-right: 6px;
+        }
+
+        &:last-child {
+            margin-left: 6px;
+        }
+    }
+
+    svg {
+        height: 57px;
+        width: 57px;
+        color: rgba(255, 255, 255, .6);
+    }
+
+    .error {
+        color: #FF8D3B;
+
+        svg {
+            height: 24px;
+            width: 24px;
+            fill: #FF8D3B;
+        }
+    }
+}
+
+.directoryName {
+    display: flex;
+    align-items: center;
+    margin: 28px 0px 10px;
+
+    svg {
+        margin-right: 16px;
+    }
+
+    &>* {
+        flex-shrink: 0;
+        flex-grow: 0;
+    }
+
+    span {
+        flex-shrink: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        direction: rtl;
+        text-align: left;
+        display: inline-block;
+    }
+}
+
+.filesContainer {
+    margin: 10px -20px 0;
+
+    .file {
+        display: flex;
+        align-items: center;
+        height: 52px;
+        padding: 8px 20px;
+
+        &>* {
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        a {
+            display: inline-block;
+            vertical-align: middle;
+            width: calc(100% - 32px);
+            color: #fff;
+            text-decoration: none;
+            font-weight: normal;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+            text-align: left;
+        }
+
+        &:nth-child(even) {
+            background: #4a4a4a;
+        }
+
+        &>sui-input,
+        &>svg {
+            margin-right: 16px;
+        }
+    }
+
+    .noFiles {
+        padding: 12px 16px;
+        text-align: center;
+        border-radius: 8px;
+
+        .title {
+            font-size: 28px;
+        }
+
+        .title,
+        p {
+            opacity: .4;
+        }
+    }
+}
+
+.uploadFilesContainer {
+    margin: 28px -20px;
+
+    .file {
+        display: flex;
+        align-items: center;
+        height: 52px;
+        padding: 8px 20px;
+
+        .progressBar {
+            display: inline-block;
+            vertical-align: middle;
+            width: 20px;
+            height: 20px;
+            background: var(--progress);
+            border-radius: 50%;
+            position: relative;
+            margin-right: 16px;
+
+            .circle {
+                border: 1px solid white;
+                height: 20px;
+                width: 20px;
+                border-radius: 50%;
+                position: absolute;
+                opacity: 0;
+
+                &~.circle {
+                    border: 1px solid white;
+                    opacity: 0;
+                }
+            }
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: calc(50% - (15px / 2));
+                left: calc(50% - (15px / 2));
+                display: block;
+                width: 15px;
+                height: 15px;
+                border-radius: 50%;
+                background-color: #333;
+            }
+
+            &.started {
+                &::after {
+                    position: absolute;
+                    content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='20,5.78 18.22,4 12,10.22 5.78,4 4,5.78 10.22,12 4,18.22 5.78,20 12,13.78 18.22,20 20,18.22 13.78,12 ' fill='white'/%3E%3C/svg%3E");
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-6px, -11px);
+                }
+            }
+
+            &.complete {
+                .circle {
+                    animation: ripple 0.5s ease;
+
+                    &~.circle {
+                        animation: smallRipple .3s ease;
+                    }
+                }
+
+                &::before {
+                    top: 0;
+                    left: 0;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #5AD858;
+                    animation: bounce 0.2s ease
+                }
+
+                &::after {
+                    position: absolute;
+                    content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.31,18.6L3,12.29l1.54-1.51l4.77,4.77L19.46,5.4L21,6.91L9.31,18.6z' fill='white'/%3E%3C/svg%3E");
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-9px, -9px);
+                }
+            }
+
+            &.failed {
+                &::before {
+                    top: 0;
+                    left: 0;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #F04E4E;
+                    animation: bounce 0.2s ease
+                }
+
+                &::after {
+                    position: absolute;
+                    content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m10.88,3.45h2.17v11.95h-2.17V3.45Zm2.17,15.21v2.17h-2.17v-2.17h2.17Z' fill='white'/%3E%3C/svg%3E");
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-9px, -9px);
+                }
+            }
+        }
+
+        &:nth-child(even) {
+            background: #4a4a4a;
+
+            .progressBar::before {
+                background-color: #4a4a4a;
+            }
+
+            .progressBar.complete::before {
+                background-color: #5AD858;
+            }
+
+            .progressBar.failed::before {
+                background-color: #F04E4E;
+            }
+        }
+
+        &>sui-input {
+            margin-right: 16px;
+        }
+    }
+
+    .noFiles {
+        padding: 12px 16px;
+        text-align: center;
+        border-radius: 8px;
+
+        .title {
+            font-size: 28px;
+        }
+
+        .title,
+        p {
+            opacity: .4;
         }
     }
 }

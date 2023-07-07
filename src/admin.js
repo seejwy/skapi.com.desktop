@@ -77,11 +77,22 @@ export default class Admin extends Skapi {
         return this.request('grant-access', params, { auth: true });
     }
 
-    async getServices() {
+    async getServices(id) {
         await this.checkAdmin();
-        this.services = await this.request('get-services', null, {
-            auth: true
-        });
+        if (id) {
+            let set = await this.request('get-services', id ? { service_id: id } : null, {
+                auth: true
+            });
+            for (s in set) {
+                this.services[s] = set[s];
+            }
+        }
+        else {
+            this.services = await this.request('get-services', id ? { service_id: id } : null, {
+                auth: true
+            });
+        }
+
         return this.services;
     }
 
@@ -245,7 +256,7 @@ export default class Admin extends Skapi {
          *      userId: user id
          * }
          */
-        
+
         await this.requireAdmin({ throwError: true });
         return await this.request('block-account', { service: params.service, block: params.userId }, { auth: true });
     }

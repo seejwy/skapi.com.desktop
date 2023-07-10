@@ -14,7 +14,8 @@
                 .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.currentProgress > 0 && file.currentProgress < 100, 'complete': file.currentProgress === 100, 'failed': file.progress === false}" :style="{'--progress': 'conic-gradient(#5AD858 ' + (file.currentProgress ? file.currentProgress * 3.6 : 0) + 'deg, rgba(255,255,255,.1) 0deg)'}")
                     .circle
                     .circle
-                span {{ path }}
+                .pathWrapper
+                    span.path {{ path }}
         template(v-else)
             div.noFiles
                 div.title No Files
@@ -206,7 +207,8 @@ const uploadFiles = async () => {
 }
 
 .filesContainer {
-    margin: 28px -20px;
+    // margin: 28px -20px;
+    margin: 28px 0px;
 
     .file {
         display: flex;
@@ -214,13 +216,18 @@ const uploadFiles = async () => {
         height: 52px;
         padding: 8px 20px;
 
-        span {
+        .pathWrapper {
+            display: inline-block;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
             direction: rtl;
             text-align: left;
+
+            .path {
+                unicode-bidi: plaintext;
+            }
         }
 
         .progressBar {
@@ -339,7 +346,7 @@ const uploadFiles = async () => {
     }
 
     .noFiles {
-        padding: 12px 16px;
+        padding: 90px 16px;
         text-align: center;
         border-radius: 8px;
 

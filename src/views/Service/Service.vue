@@ -114,20 +114,27 @@ template(v-else)
                     span Modify
             .directoryName
                 Icon(@click="goUpDirectory") trash
-                span {{ currentDirectory }}
+                .pathWrapper
+                    span.path {{ currentDirectory }}
             .filesContainer
-                //- template(v-if="isFetching")
-                //-     div Fetching
+                template(v-if="isFetching")
+                    div Fetching
                 template(v-if="service?.files")
                     template(v-for="(file, name) in directoryFiles")
                         .file(v-if="file.type === 'folder'" @click="goto(currentDirectory+=name)")
                             sui-input(type="checkbox")
                             Icon check
-                            div {{ name }}
+                            .pathWrapper 
+                                .path {{ name }}
                         .file(v-else)
                             sui-input(type="checkbox")
                             Icon X2
-                            a(:href="file.url" download) {{ name }}
+                            .pathWrapper
+                                a.path(:href="file.url" download) {{ name }}
+                    .paginator
+                        Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
+                        span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
+                        Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
                 template(v-else)
                     div.noFiles
                         div.title No Files
@@ -180,7 +187,7 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount } from 'vue';
+import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed } from 'vue';
 import { state, skapi } from '@/main';
 import { localeName, dateFormat, getSize } from '@/helper/common';
 import { useRoute, useRouter } from 'vue-router';
@@ -440,7 +447,7 @@ const uploadFiles = async () => {
     }
 }
 
-const getDirectory = (directory) => {
+const getDirectory = (directory) => {    
     if (!directory && service.value.hasOwnProperty('files')) {
         directoryFiles.value = service.value.files.list;
         return true;
@@ -692,7 +699,7 @@ watch(() => isUpload.value, async () => {
 });
 
 watch(() => service.value.subdomain, () => {
-    if(service.value.subdomain) {
+    if (service.value.subdomain) {
         domain.value = true;
 
         if (service.value.subdomain.includes('*')) {
@@ -716,7 +723,7 @@ onBeforeMount(() => {
         } else {
             deleting.value = false;
         }
-    } else { 
+    } else {
         domain.value = false;
     }
 })
@@ -1015,15 +1022,19 @@ console.log(service.value.subdomain, service.value.service)
         flex-grow: 0;
     }
 
-    span {
-        flex-shrink: 1;
+    .pathWrapper {
+        display: inline-block;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         width: 100%;
         direction: rtl;
         text-align: left;
-        display: inline-block;
+
+        .path {
+            unicode-bidi: plaintext;
+            cursor: pointer;
+        }
     }
 }
 
@@ -1041,18 +1052,24 @@ console.log(service.value.subdomain, service.value.service)
             flex-grow: 0;
         }
 
-        a {
+        .pathWrapper {
             display: inline-block;
-            vertical-align: middle;
-            width: calc(100% - 32px);
-            color: #fff;
-            text-decoration: none;
-            font-weight: normal;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            width: 100%;
             direction: rtl;
             text-align: left;
+
+            a {
+                color: #fff;
+                text-decoration: none;
+            }
+
+            .path {
+                unicode-bidi: plaintext;
+                cursor: pointer;
+            }
         }
 
         &:nth-child(even) {

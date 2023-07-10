@@ -9,14 +9,15 @@ section#section.intro
         a(href='https://docs.skapi.com' target="_blank")
             img.btnImg(src="@/assets/img/icons/Asset6.svg")
             span Get Started
+            img.arrowImg(src="@/assets/img/icons/arrow_right.svg")
 
 section#section.video
     .container 
         .desc
             h4 Serverless sdasdasd
-            p A robust and easy-to-use API service #[br] designed #[span to help developers build faster, #[br] more efficient, and scalable applications.] 
+            p A robust and easy-to-use API service designed #[span to help developers build faster, more efficient, and scalable applications.] 
             a(href='https://docs.skapi.com' target="_blank")
-                sui-button Getting Started
+                sui-button Read Document
         .youtube 
             iframe.video(src="https://www.youtube.com/embed/c5jdIE9wl_8?&rel=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen)
 
@@ -66,8 +67,8 @@ section#section.start(ref="startSection")
             .code
                 .codeCopy(@click="codeCopy")
                     img(src="@/assets/img/icons/copy.svg")
-                .codeNum 1#[br]2#[br]3#[br]4#[br]5#[br]6#[br]7#[br]8#[br]9
                 .preCode
+                    .codeNum 1#[br]2#[br]3#[br]4#[br]5#[br]6#[br]7#[br]8#[br]9
                     pre
                         code
                             |&lt;!DOCTYPE html&gt;
@@ -95,16 +96,13 @@ section#section.signup
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 
 let stepBar = ref(null);
 let startSection = ref(null);
 let activeBar = ref(false);
 
-onMounted(() => {
-    document.querySelector('main').classList.add('landing');
-
-    window.addEventListener('scroll', () => {
+let barControl = () => {
     let currentScroll = window.scrollY + (window.innerHeight / 1.5);
 
     if(currentScroll >= startSection.value.offsetTop) {
@@ -112,7 +110,26 @@ onMounted(() => {
     } else {
         activeBar.value = false;
     }
-})
+}
+
+let codeCopy = () => {
+    let doc = document.createElement('textarea');
+    doc.textContent = document.querySelector('.preCode pre code').textContent;
+    document.body.append(doc);
+    doc.select();
+    document.execCommand('copy');
+    doc.remove();
+
+    alert('The code has been copied.');
+}
+
+onMounted(() => {
+    document.querySelector('main').classList.add('landing');
+    window.addEventListener('scroll', barControl);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', barControl);
 });
 </script>
 
@@ -129,6 +146,7 @@ main {
         .container {
             margin: 0 auto;
             width: 1280px;
+            box-sizing: border-box;
 
             h1 {
                 font-size: 80px;
@@ -189,9 +207,17 @@ main {
                         width: 290px;
                     }
 
+                    .arrowImg {
+                        position: absolute;
+                        right: -280px;
+                        top: -10px;
+                        width: 50px;
+                        filter: invert(100%);
+                    }
+
                     span {
                         position: absolute;
-                        left: 90px;
+                        left: 85px;
                         z-index: 2;
                         white-space: nowrap;
                     }
@@ -203,9 +229,10 @@ main {
             .container {
                 display: flex;
                 flex-wrap: nowrap;
+                justify-content: space-between;
     
                 .desc {
-                    width: 50%;
+                    width: 48.5%;
                     h4 {
                         margin: 40px 0;
                     }
@@ -221,7 +248,7 @@ main {
                     }
                 }
                 .youtube {
-                    width: 50%;
+                    width: 48.5%;
 
                     .video {
                         width: 100%;
@@ -341,17 +368,18 @@ main {
                 .code {
                     position: relative;
                     width: 65%;
-
+                    
                     .preCode {
                         position: relative;
                         height: 100%;
                         background-color: #434343;
-                        border-radius: 8px;
                         color: #fff;
-                        overflow-x: auto;
                         font-size: 16px;
                         font-weight: 400;
                         line-height: 24px;
+                        border-radius: 8px;
+                        overflow-x: auto;
+                        overflow-y: hidden;
                         display: flex;
                         // align-items: center;
                         padding: 40px 60px 60px 65px;
@@ -359,19 +387,19 @@ main {
                         span {
                             color: #7C8CFF;
                         }
+                        .codeNum {
+                            position: absolute;
+                            top: 55px;
+                            left: 30px;
+                            width: 100%;
+                            height: 100%;
+                            z-index: 2;
+                            color: #666;
+                            line-height: 25px;
+                        }
                     }
 
-                    .codeNum {
-                        position: absolute;
-                        top: 55px;
-                        left: 30px;
-                        width: 100%;
-                        height: 100%;
-                        z-index: 2;
-                        color: #666;
-                        line-height: 25px;
-                    }
-
+                    
                     .codeCopy {
                         position: absolute;
                         right: 24px;
@@ -393,8 +421,10 @@ main {
 
         &.signup {
             width: 100%;
-            height: 375px;
-            background: url("src/assets/img/icons/Asset 33.png") no-repeat;
+            height: auto;
+            // height: 375px;
+            padding: 100px 0;
+            background: url("src/assets/img/icons/Asset 33.png") no-repeat center;
             background-size: cover;
             display: flex;
             align-items: center;
@@ -406,6 +436,7 @@ main {
                 p {
                     font-size: 20px;
                     font-weight: 500;
+                    line-height: 28px;
                     color: #fff;
                     margin: 0 0 30px 0;
                 }
@@ -423,6 +454,259 @@ main {
                 }
             }
 
+        }
+    }
+}
+
+@media (max-width: 1360px) {
+    main {
+        #section {
+            .container {
+                width: 100%;
+                padding: 0 40px;
+            }
+
+            &.intro {
+                margin: 50px 0 120px 0;
+
+                .container {
+                    .mainImg {
+                        width: 100%;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 1000px) {
+    main {
+        #section {
+            .container {
+                h1 {
+                    font-size: 8.0vw;
+                }
+                h4 {
+                    font-size: 3.6vw;
+                }
+                h5 {
+                    font-size: 2.8vw;
+                }
+            }
+
+            &.intro {
+                .container {
+                    p {
+                        font-size: 3.2vw;
+                    }
+                    a {
+                        font-size: 2.4vw;
+                    }
+                }
+            }
+
+            &.video {
+                .container {
+                    .desc {
+                        p {
+                            font-size: 2.4vw;
+                        }
+                    }
+                }
+            }
+
+            &.features {
+                .cardWrap {
+                    .card {
+                        .tit {
+                            font-size: 2.4vw;
+                        }
+                        .desc {
+                            font-size: 2vw;
+                        }
+                    }
+                }
+            }
+
+            &.start {
+                .startWrap {
+                    .steps {
+                        .cont {
+                            .step {
+                                .tit {
+                                    font-size: 2.4vw;
+                                }
+                                .desc {
+                                    font-size: 1.6vw;
+                                }
+                            }
+                        }
+                    }
+                    .code {
+                        .preCode {
+                            font-size: 1.6vw;
+                        }
+                    }
+                }
+            }
+
+            &.signup {
+                .cont {
+                    p {
+                        font-size: 2vw;
+                    }
+                    button {
+                        font-size: 1.6vw;
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+@media (max-width: 820px) {
+    main {
+        #section {
+            .container {
+                h1 {
+                    font-size: 62px;
+                }
+                h4 {
+                    font-size: 32px;
+                }
+                h5 {
+                    font-size: 28px;
+                }
+            }
+
+            &.intro {
+                .container {
+                    a {
+                        .btnImg {
+                            width: 250px;
+                        }
+                        .arrowImg {
+                            width: 40px;
+                            top: -8px;
+                            right: -243px;
+                        }
+                        span {
+                            font-size: 20px;
+                            top: -1px;
+                        }
+                    }
+                    span {
+                        font-size: 24px;
+                    }
+                    p {
+                        font-size: 28px;
+                    }
+                    a {
+                        font-size: 20px;
+                    }
+                }
+            }
+
+            &.video {
+                .container {
+                    flex-wrap: wrap;
+
+                    .desc {
+                        width: 100%;
+
+                        p {
+                            font-size: 20px;
+                        }
+                        a {
+                            sui-button {
+                                margin-bottom: 40px;
+                            }
+                        }
+                    }
+                    .youtube {
+                        width: 100%;
+
+                        .video {
+                            height: 400px;
+                        }
+                    }
+                }
+            }
+
+            &.features {
+                .container {
+                    .cardWrap {
+                        flex-wrap: wrap;
+
+                        .card {
+                            width: 48%;
+                            margin-right: 4%;
+
+                            &:nth-child(2),&:nth-child(4) {
+                                margin-right: 0;
+                            }
+                            .tit {
+                                font-size: 24px;
+                            }
+                            .desc {
+                                font-size: 20px;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.start {
+                .container {
+                    h4 {
+                        margin-bottom: 50px;
+                    }
+                    .startWrap {
+                        flex-wrap: wrap;
+
+                        .steps {
+                            width: 100%;
+                            margin-bottom: 50px;
+
+                            .bar {
+                                width: 12px;
+                            }
+                            .cont {
+                                .step {
+                                    .tit {
+                                        font-size: 24px;
+                                    }
+                                    .desc {
+                                        font-size: 16px;
+                                    }
+                                }
+                            }
+                        }
+                        .code {
+                            width: 100%;
+
+                            .preCode {
+                                font-size: 14px;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.signup {
+                padding: 80px 40px;
+
+                .cont {
+                    p {
+                        font-size: 20px;
+                        line-height: 28px;
+                    }
+                    button {
+                        font-size: 16px;
+                    }
+                }
+            }
         }
     }
 }

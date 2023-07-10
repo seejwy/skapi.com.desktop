@@ -50,7 +50,8 @@ sui-nav#topNav {
 
     &>.navAlign {
         display: flex;
-        max-width: 1000px;
+        // max-width: 1000px;
+        max-width: 1280px;
         justify-content: space-between;
         align-items: center;
         margin: auto;

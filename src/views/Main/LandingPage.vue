@@ -6,9 +6,9 @@ section#section.intro
         h1 The Future of #[br] Development
         p Frontend Driven Backend Service
         br
-        //- a(href='https://docs.skapi.com' target="_blank")
-        //-     img(src="@/assets/img/icons/Asset6.svg")
-        //-         span Getting Started 
+        a(href='https://docs.skapi.com' target="_blank")
+            img.btnImg(src="@/assets/img/icons/Asset6.svg")
+            span Get Started
 
 section#section.video
     .container 
@@ -157,7 +157,7 @@ main {
                 width: 1280px;
                 height: 100%;
 
-                img {
+                .mainImg {
                     position: absolute;
                     right: -80px;
                     bottom: 0px;
@@ -170,13 +170,31 @@ main {
                     display: inline-block;
                     font-size: 32px;
                     font-weight: 500;
-                    margin: 0 0 40px 0;
+                    margin: 0 0 50px 0;
                     background: linear-gradient(180deg, #FAFF00 0%, rgba(255, 230, 0, 0.00) 97.55%);
                 }
                 a {
+                    position: relative;
+                    text-align: right;
                     text-decoration: none;
                     font-size: 24px;
                     color: #fff;
+
+                    .btnImg {
+                        position: absolute;
+                        left: 0;
+                        top: -10px;
+                        // transform: translate(-50%, -50%);
+                        transform: rotate(180deg);
+                        width: 290px;
+                    }
+
+                    span {
+                        position: absolute;
+                        left: 90px;
+                        z-index: 2;
+                        white-space: nowrap;
+                    }
                 }
             }
         }
@@ -209,6 +227,7 @@ main {
                         width: 100%;
                         height: 100%;
                         border-radius: 8px;
+                        box-shadow: 7px 7px 18px #bbb;
                     }
                 }
             }

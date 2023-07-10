@@ -5,7 +5,6 @@ import './assets/main.less';
 // init state
 const state = reactive({
     user: null,
-    viewport: 'desktop',
     connection: null,
     getServices: null,
     services: null,
@@ -14,7 +13,6 @@ const state = reactive({
         localStorage.setItem(`verification_message_${state.user.user_id}`, new Date().getTime());
         state.showVerificationNotification = false;
     },
-    viewportOnChange: (v) => v,
     blockingPromise: new Promise(res => res())
 });
 
@@ -55,24 +53,6 @@ function storeServices() {
 // attach event to save service list on close
 window.addEventListener('beforeunload', storeServices);
 window.addEventListener("visibilitychange", storeServices);
-
-// init document (will use when necessary)
-
-let desktopMedia = '(min-width: 769px)';
-const desktopSize = window.matchMedia(desktopMedia);
-
-const setViewport = (e) => {
-    if (e.matches) {
-        state.viewport = 'desktop';
-    } else {
-        state.viewport = 'mobile';
-    }
-    state.viewportOnChange(state.viewport);
-};
-
-setViewport(desktopSize);
-
-desktopSize.addEventListener('change', setViewport);
 
 // init vue
 const app = createApp(App);

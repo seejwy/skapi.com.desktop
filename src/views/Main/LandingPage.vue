@@ -3,8 +3,8 @@ section#section.intro
     .container 
         img.mainImg(src="@/assets/img/icons/main illu.svg")
         span Skapi BETA 1.0
-        h1 The Future of #[br] Development
-        p Frontend Driven Backend Service
+        h1 Serverless #[br] Backend API
+        p Build your next great innovation
         br
         a(href='https://docs.skapi.com' target="_blank")
             img.btnImg(src="@/assets/img/icons/Asset6.svg")
@@ -14,8 +14,9 @@ section#section.intro
 section#section.video
     .container 
         .desc
-            h4 Serverless sdasdasd
-            p A robust and easy-to-use API service designed #[span to help developers build faster, more efficient, and scalable applications.] 
+            h4 What is Skapi?
+            p Skapi is a serverless backend API library solely designed for frontend web developers. 
+            p Start building a full functioning web services directly from your HTML/Javascript.
             a(href='https://docs.skapi.com' target="_blank")
                 sui-button Read Document
         .youtube 
@@ -24,33 +25,33 @@ section#section.video
 section#section.features 
     .container 
         h5 Key Features
-        h4 All the APIs for building incredible products
+        h4 It just works out of the box
         .cardWrap 
             .card 
                 .icon
                     img(src="@/assets/img/icons/Serverless.svg")
                 h4.tit Serverless
-                p.desc Embrace the simplicity of skapi's 100% serverless architecture. Say goodbye to dealing with terminals, installing frameworks on your machine,
+                p.desc No need for server setup. No complex frameworks. No dealing with terminals. 100% Serverless.
             .card 
                 .icon
                     img(src="@/assets/img/icons/Database.png")
                 h4.tit Database
-                p.desc Experience the power of an auto-indexed, scalable database that combines the best of relational and NoSQL architectures. skapi's innovative database.
+                p.desc No schema, No SQL queries required. Yet, full flexibility that scales with your needs.
             .card 
                 .icon
                     img(src="@/assets/img/icons/Authentication.png")
                 h4.tit Authentication
-                p.desc Simplify your authentication process with skapi. From basic user login features to complex verifications, our platform offers the e
+                p.desc Security all figured out for you. CORS restriction, Storage / database security, Login, signup... It just works.
             .card 
                 .icon
                     img(src="@/assets/img/icons/landing_page_html_logo.png")
                 h4.tit HTML Friendly
-                p.desc Take advantage of unlimited, pay-as-you-go cloud storage with skapi. Whether it's web hosting or serving large files with securi
+                p.desc Fully compatible with both vanilla HTML and Webpack-based projects.
 
 section#section.start(ref="startSection")
     .container 
         h5 SDKS
-        h4 Quick to Get Started, Easy to Grow
+        h4 Import Skapi, and start building
         .startWrap
             .steps
                 .bar(ref="stepBar" :class="{ active: activeBar }")

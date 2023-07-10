@@ -2,7 +2,7 @@
 sui-nav#topNav(auto-hide)
     .navAlign
         .title
-            img.logo(v-if="pageTitle === 'skapi'" alt="skapi" src="@/assets/img/symbol-logo-white.svg" @click="()=>props.isParentLevel ? router.push('/') : null" width="90" height="35")
+            img.logo(v-if="pageTitle === 'skapi'" alt="skapi" src="@/assets/img/logo.png" @click="()=>props.isParentLevel ? router.push('/') : null" width="90" height="35")
             span.titleText(v-else:class="{clickable: props.isParentLevel}" @click="()=>props.isParentLevel ? router.push('/') : gotoService()" v-html="pageTitle || ''")
         .menu
             div
@@ -46,11 +46,10 @@ sui-nav#topNav(auto-hide)
 sui-nav#topNav {
     box-shadow: none;
     padding: 0 var(--side-padding, 24px);
-    color: #fff;
+    color: #293fe6;
 
     &>.navAlign {
         display: flex;
-        // max-width: 1000px;
         max-width: 1280px;
         justify-content: space-between;
         align-items: center;
@@ -73,7 +72,7 @@ sui-nav#topNav {
 
                     a {
                         text-decoration: none;
-                        color: #fff;
+                        color: #293fe6;
 
                         &.router-link-active {
                             font-weight: bold;

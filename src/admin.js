@@ -71,6 +71,68 @@ export default class Admin extends Skapi {
         return r;
     }
 
+    async refreshCDN(params) {
+        if (!(await this.checkAdmin())) {
+            throw 'admin required.';
+        }
+
+        if (!params?.service) {
+            throw 'Service ID is required';
+        }
+        if (!params?.subdomain) {
+            throw 'Subdomain is required';
+        }
+
+        return this.request('refresh-cdn', {
+            service: params.service,
+            subdomain: params.subdomain
+        }, {
+            auth: true,
+            method: 'post'
+        });
+
+    }
+
+    async registerSubdomain(params) {
+        if (!(await this.checkAdmin())) {
+            throw 'admin required.';
+        }
+
+        if (!params?.service) {
+            throw '"service" is required.';
+        }
+
+        if (!params?.subdomain) {
+            throw '"subdomain" is required.';
+        }
+
+        if (params?.exec === 'register') {
+            let invalid = [
+                'docs',
+                'baksa',
+                'desktop',
+                'mobile',
+                'skapi',
+                'broadwayinc',
+                'broadway',
+                'documentation'
+            ];
+
+            if (params.subdomain.length < 4) {
+                throw "Subdomain has already been taken.";
+            }
+
+            if (invalid.includes(params.subdomain)) {
+                throw "Subdomain has already been taken.";
+            }
+        }
+
+        return this.request('register-subdomain', params, {
+            auth: true,
+            method: 'post'
+        });
+    }
+
     async grantAccess(params) {
         await this.checkAdmin();
         // { service ,user_id, access_group }

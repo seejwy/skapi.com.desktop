@@ -109,32 +109,43 @@ template(v-else)
                 .titleWrapper
                     Icon list
                     h2 File List
-                .actions(@click="upload" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    Icon pencil
-                    span Modify
+                .actionWrapper
+                    .actions(@click="upload")
+                        Icon pencil
+                        span Upload
+                    .actions(@click="deleteFiles" :class="{'active': service?.files?.list}")
+                        Icon trash
+                        span Delete
+                //- sui-button.withIcon(@click="deleteFiles")
+                //-     Icon trash
+                //-     span Delete
             .directoryName
-                Icon(@click="goUpDirectory") trash
+                Icon(@click="goUpDirectory") upload
                 .pathWrapper
-                    span.path {{ currentDirectory }}
+                    span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
+                        span {{ folder }}/
+                    span /
             .filesContainer
-                template(v-if="isFetching")
-                    div Fetching
+                .fetching(v-if="isFetching")
+                    Icon.animationRotation refresh
                 template(v-if="service?.files")
                     template(v-for="(file, name) in directoryFiles")
-                        .file(v-if="file.type === 'folder'" @click="goto(currentDirectory+=name)")
-                            sui-input(type="checkbox")
-                            Icon check
-                            .pathWrapper 
-                                .path {{ name }}
-                        .file(v-else)
-                            sui-input(type="checkbox")
-                            Icon X2
-                            .pathWrapper
-                                a.path(:href="file.url" download) {{ name }}
-                    .paginator
-                        Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
-                        span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
-                        Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
+                        .fileWrapper(v-if="file.type === 'folder'")
+                            .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
+                                sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="currentDirectory.slice(1) + file.name")
+                                Icon folder2
+                                .pathWrapper(@click="goto(currentDirectory+=name)")
+                                    span.path {{ name }}                                
+                        .fileWrapper(v-else)
+                            .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + '/' + file.name)}")
+                                sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + '/' + file.name) || null" @change="checkboxHandler" :value="file.name")
+                                Icon file
+                                a(:href="file.url" download).pathWrapper
+                                    span.path {{ name }}
+                    //- .paginator(style="text-align:center")
+                    //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
+                    //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
+                    //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
                 template(v-else)
                     div.noFiles
                         div.title No Files
@@ -170,9 +181,9 @@ sui-overlay(ref="deleteSubdomainOverlay")
             Icon warning
             div Deleting Subdomain?
         .body 
-            p Are you sure you want to delete "{{ service.subdomain }}" permanently? #[br] You will not be able to undo this action. #[br] And all relevant data will be deleted.
-            p To confirm deletion, enter Service ID #[br] #[span(style="font-weight: bold") {{ service.service }}]
-            sui-input(:placeholder="service.service" :value="confirmationCode" @input="(e) => confirmationCode = e.target.value")
+            p Are you sure you want to delete "{{ service.subdomain }}" permanently? #[br] All uploaded files will be deleted along with your subdomain. #[br] You will not be able to undo this action.
+            p To confirm deletion, enter Service ID #[br] #[span(style="font-weight: bold") {{ service.subdomain }}]
+            sui-input(:placeholder="service.subdomain" :value="confirmationCode" @input="(e) => confirmationCode = e.target.value")
         .foot
             sui-button(type="button" @click="()=> { deleteSubdomainOverlay.close(); confirmationCode = ''}").textButton Cancel
             SubmitButton(:loading="isDisabled" class="textButton" backgroundColor="51, 51, 51") Delete
@@ -231,6 +242,8 @@ const numberOfFailedUploads = ref(-1);
 const currentDirectory = ref('/');
 let abortUpload = '';
 const selectedFiles = ref([]);
+
+const isDeleting = ref(false);
 
 const informationGrid = reactive([
     {
@@ -342,6 +355,7 @@ const addFolderButtonHandler = () => {
 }
 
 const goto = (name) => {
+    currentDirectory.value = name;
     getDirectory(name.slice(0, -1).split('/'));
 }
 
@@ -447,7 +461,7 @@ const uploadFiles = async () => {
     }
 }
 
-const getDirectory = (directory) => {    
+const getDirectory = (directory) => {
     if (!directory && service.value.hasOwnProperty('files')) {
         directoryFiles.value = service.value.files.list;
         return true;
@@ -566,6 +580,18 @@ const getDirectory = (directory) => {
 }
 getDirectory();
 
+// if('subdomain' in service.value) {
+//     if (service.value.subdomain.includes('*')) {
+//         domain.value = false;
+//         deleting.value = true;
+//     } else {
+//         deleting.value = false;
+//         getDirectory();
+//     }
+// }
+
+console.log('subdomain' in service.value)
+
 const onDrop = (event) => {
     const readEntriesAsync = (item) => {
         let reader = item.createReader();
@@ -613,6 +639,66 @@ const onDrop = (event) => {
     }
 }
 
+const checkboxHandler = (e) => {
+    if (e.target.checked) {
+        selectedFiles.value.push(`${service.value.subdomain}/${e.target.value}`);
+    } else {
+        selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`), 1);
+    }
+}
+
+
+const deleteFiles = () => {
+    isDeleting.value = true;
+    skapi.deleteHostFile({
+        keys: selectedFiles.value,
+        service: service.value.service
+    }).then((res) => {
+        selectedFiles.value.forEach(path => {
+            console.log({ path })
+            let dir = service.value.files.list;
+            let previousDir = service.value.files.list;
+            let newPathArr = path.split('/');
+            if (!newPathArr[newPathArr.length - 1]) {
+                newPathArr.pop();
+                newPathArr[newPathArr.length - 1] = newPathArr[newPathArr.length - 1] + '/';
+            }
+            for (let i = 1; i < newPathArr.length - 1; i++) {
+                if (i > 1) {
+                    previousDir = previousDir[newPathArr[i - 1] + '/'].files.list;
+                }
+                dir = dir[newPathArr[i] + '/'].files.list;
+            }
+            if (!dir[newPathArr[newPathArr.length - 1]]) {
+                console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]])
+            }
+            console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]])
+            console.log(newPathArr[newPathArr.length - 1])
+            delete dir[newPathArr[newPathArr.length - 1]];
+            if (Object.keys(dir).length === 0) {
+                goUpDirectory();
+                dir = service.value.files.list;
+                delete previousDir[newPathArr[newPathArr.length - 2] + '/'];
+            }
+        });
+        isDeleting.value = false;
+        selectedFiles.value = [];
+    });
+}
+
+const currentDirectoryArray = computed(() => {
+    selectedFiles.value = [];
+    return currentDirectory.value.split('/').reverse().filter((value) => {
+        return value;
+    });
+})
+
+const jumpto = (index) => {
+    let localCurrentDirectory = currentDirectory.value;
+    let directory = [...localCurrentDirectory.split('/').filter((path) => path)];
+    goto(`/${directory.slice(0, index).join('/')}/`);
+}
+
 const deleteService = () => {
     isDisabled.value = true;
     if (confirmationCode.value !== service.value.service) {
@@ -639,9 +725,9 @@ const deleteService = () => {
 
 const deleteSubdomain = async () => {
     isDisabled.value = true;
-    if (confirmationCode.value !== service.value.service) {
+    if (confirmationCode.value !== service.value.subdomain) {
         confirmationCode.value = '';
-        deleteErrorMessage.value = "Your service code did not match.";
+        deleteErrorMessage.value = "Your subdomain name did not match.";
         if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
         deleteErrorOverlay.value.open();
         isDisabled.value = false;
@@ -659,15 +745,17 @@ const deleteSubdomain = async () => {
             } else {
                 deleting.value = false;
             }
-            domain.value = false;
-            isDisabled.value = false;
-            deleteSubdomainOverlay.value.close();
         })
     } catch (e) {
         deleteErrorMessage.value = e.message;
         if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
         deleteErrorOverlay.value.open();
         isDisabled.value = false;
+    } finally {
+        deleting.value = true;
+        domain.value = false;
+        isDisabled.value = false;
+        deleteSubdomainOverlay.value.close();
     }
 }
 
@@ -699,17 +787,30 @@ watch(() => isUpload.value, async () => {
 });
 
 watch(() => service.value.subdomain, () => {
-    if (service.value.subdomain) {
-        domain.value = true;
+    // if (service.value.subdomain) {
+    //     domain.value = true;
 
+    //     if (service.value.subdomain.includes('*')) {
+    //         domain.value = false;
+    //         deleting.value = true;
+    //     } else {
+    //         deleting.value = false;
+    //     }
+    // } else {
+    //     domain.value = false;
+    // }
+
+    if ('subdomain' in service.value) {
         if (service.value.subdomain.includes('*')) {
             domain.value = false;
             deleting.value = true;
         } else {
+            domain.value = true;
             deleting.value = false;
         }
     } else {
         domain.value = false;
+        deleting.value = false;
     }
 });
 
@@ -745,6 +846,24 @@ console.log(service.value.subdomain, service.value.service)
             h2 {
                 font-size: 20px;
                 font-weight: normal;
+            }
+
+            .actionWrapper {
+                display: flex;
+                flex-wrap: nowrap;
+
+                .actions {
+                    &:first-child {
+                        margin-right: 20px;
+                    }
+                    &:last-child {
+                        opacity: 0.5;
+
+                        &.active {
+                            opacity: 1;
+                        }
+                    }
+                }
             }
         }
     }
@@ -1041,15 +1160,20 @@ console.log(service.value.subdomain, service.value.service)
 .filesContainer {
     margin: 10px -20px 0;
 
+    .fileWrapper {
+        &:nth-child(even) {
+            background: #4a4a4a;
+        }
+    }
+
     .file {
         display: flex;
         align-items: center;
         height: 52px;
         padding: 8px 20px;
 
-        &>* {
-            flex-shrink: 0;
-            flex-grow: 0;
+        &.fade {
+            opacity: 0.5;
         }
 
         .pathWrapper {
@@ -1072,8 +1196,23 @@ console.log(service.value.subdomain, service.value.service)
             }
         }
 
-        &:nth-child(even) {
-            background: #4a4a4a;
+        &>*:not(.pathWrapper) {
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        a {
+            display: inline-block;
+            vertical-align: middle;
+            width: calc(100% - 32px);
+            color: #fff;
+            text-decoration: none;
+            font-weight: normal;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+            text-align: left;
         }
 
         &>sui-input,

@@ -46,7 +46,8 @@ sui-nav#topNav(auto-hide)
 sui-nav#topNav {
     box-shadow: none;
     padding: 0 var(--side-padding, 24px);
-    color: #293fe6;
+    color: #fff;
+    // color: #293fe6;
 
     &>.navAlign {
         display: flex;
@@ -72,7 +73,8 @@ sui-nav#topNav {
 
                     a {
                         text-decoration: none;
-                        color: #293fe6;
+                        color: #fff;
+                        // color: #293fe6;
 
                         &.router-link-active {
                             font-weight: bold;

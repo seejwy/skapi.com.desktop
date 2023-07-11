@@ -1,7 +1,6 @@
 <template lang="pug">
 section#section.intro
     .container 
-        img.mainImg(src="@/assets/img/icons/main illu.svg")
         span Skapi BETA 1.0
         h1 Serverless #[br] Backend API
         p Build your next great innovation
@@ -10,13 +9,17 @@ section#section.intro
             img.btnImg(src="@/assets/img/icons/Asset6.svg")
             span Get Started
             img.arrowImg(src="@/assets/img/icons/arrow_right.svg")
+        img.mainImg(src="@/assets/img/icons/main illu.svg")
 
 section#section.video
     .container 
         .desc
             h4 What is Skapi?
-            p Skapi is a serverless backend API library solely designed for frontend web developers. 
-            p Start building a full functioning web services directly from your HTML/Javascript.
+            p 
+                | Skapi is a serverless backend API library solely designed for frontend web developers. 
+                br
+                br
+                | Start building a full functioning web services directly from your HTML/Javascript.
             a(href='https://docs.skapi.com' target="_blank")
                 sui-button Read Document
         .youtube 
@@ -618,6 +621,7 @@ main {
 
                         p {
                             font-size: 20px;
+                            line-height: 28px;
                         }
                         a {
                             sui-button {
@@ -704,6 +708,124 @@ main {
                         line-height: 28px;
                     }
                     button {
+                        font-size: 16px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 500px) {
+    main {
+        #section {
+            .container {
+                padding: 0 20px;
+
+                h1 {
+                    font-size: 48px;
+                    margin: 24px 0 12px 0;
+                }
+                h4 {
+                    font-size: 28px;
+                }
+            }
+
+            &.intro {
+                height: auto;
+
+                .container {
+                    width: 100%;
+
+                    a {
+                        .btnImg {
+                            width: 220px;
+                        }
+                        .arrowImg {
+                            width: 35px;
+                            top: -8px;
+                            right: -213px;
+                        }
+                        span {
+                            left: 60px;
+                            top: -3px;
+                        }
+                    }
+                    span {
+                        font-size: 20px;
+                    }
+                    p {
+                        font-size: 20px;
+                        // display: block;
+                    }
+                    .mainImg {
+                        display: none;
+                    }
+                }
+            }
+
+            &.video {
+                .container {
+                    padding: 0;
+
+                    .desc {
+                        padding: 0 20px;
+                        width: 100%;
+
+                        h4 {
+                            margin: 24px 0;
+                        }
+                    }
+                    .youtube {
+                        width: 100%;
+                        
+                        .video {
+                            border-radius: 0;
+                            height: 400px;
+                        }
+                    }
+                }
+            }
+
+            &.features {
+                margin: 100px 0;
+
+                .container {
+                    h4 {
+                        margin: 28px 0 50px 0;
+                    }
+                    .cardWrap {
+                        .card {
+                            width: 100%;
+                            margin-bottom: 5%;
+
+                            &:last-child {
+                                margin-bottom: 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.start {
+                margin-bottom: 120px;
+
+                .container {
+                    .startWrap {
+                        .steps {
+                            .bar {
+                                width: 20px;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &.signup {
+                padding: 40px 20px;
+
+                .cont {
+                    p {
                         font-size: 16px;
                     }
                 }

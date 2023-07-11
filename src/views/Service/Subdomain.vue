@@ -4,7 +4,7 @@
         .overlayContainerTitle Create Subdomain
         .input
             label Subdomain
-            sui-input(type="text" ref='inputdomain' required)
+            sui-input(type="text" placeholder="Name of Subdomain" ref='inputdomain' required)
         sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
         SubmitButton(:loading="isDisabled") Save
 </template>
@@ -30,13 +30,14 @@ const create = async() => {
             exec: 'register'
         }).then(() => {
             service.value.subdomain = inputdomain.el.value;
-            isDisabled.value = false;
-            emit('close', '');
         })
     } catch(e) {
         console.log(e);
         isDisabled.value = false;
+    } finally {
+        isDisabled.value = false;
     }
+    emit('close', '');
 }
 </script>
 
@@ -59,7 +60,7 @@ const create = async() => {
     }
 
     .input {
-        margin: 20px auto;
+        margin: 20px 0 40px 0;
 
         label {
             display: block;
@@ -67,6 +68,7 @@ const create = async() => {
             font-weight: bold;
             color: rgba(255, 255, 255, .6);
             margin-bottom: 8px;
+            font-size: 0;
         }
         sui-input {
             width: 100%;

@@ -33,6 +33,8 @@ import { useRouter } from 'vue-router';
 import LoadingCircle from '@/components/LoadingCircle.vue';
 import Icon from '@/components/Icon.vue';
 
+const emit = defineEmits(['close']);
+
 let router = useRouter();
 let service = inject('service');
 const errorMessage = ref('');
@@ -156,6 +158,7 @@ const uploadFiles = async () => {
         isSaving.value = false;
         isComplete.value = true;
     }
+    emit('close', '');
 }
 </script>
 

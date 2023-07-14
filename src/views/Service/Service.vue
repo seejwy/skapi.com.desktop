@@ -10,6 +10,7 @@ template(v-else)
         div.action
             a(href="https://docs.skapi.com/the-basics/#connecting-to-your-service" target="_blank")
                 sui-button.lineButton(type="button") Find out More
+    // service information
     .container
         .innerContainer 
             .titleActionsWrapper
@@ -24,7 +25,7 @@ template(v-else)
                     .name {{ info.name }}
                     .value(v-if="info.filter") {{ info.filter(service[info.key]) }}
                     .value(v-else) {{ service[info.key] }}
-
+    // service setting
     .container
         .innerContainer 
             .titleActionsWrapper
@@ -46,7 +47,7 @@ template(v-else)
                         span(v-if="service[setting.key] > 0") Enabled 
                         span(v-else) Disabled
                     .value(v-else) {{  service[setting.key] || '-' }}
-
+    // user & record
     .container
         .innerContainer.services
             .titleActionsWrapper
@@ -74,7 +75,7 @@ template(v-else)
                             span Email System
                         .body Users are data that your service user's will store and read from your service database. 
                     .goto Go to Mail >
-
+    // subdomain setting
     .container 
         .innerContainer 
             .titleActionsWrapper(v-if="!service.subdomain" style="margin-bottom: 0;")
@@ -102,7 +103,7 @@ template(v-else)
             .domainGrid.deleting(v-else-if="deleting") 
                 h3 Deleting subdomain ...
                 span It may take a few minutes for a subdomain to be deleted.
-
+    // uploaded list
     .container(v-if="domain")
         .innerContainer    
             .titleActionsWrapper
@@ -113,13 +114,13 @@ template(v-else)
                     .actions(@click="upload")
                         Icon pencil
                         span Upload
-                    .actions(@click="deleteFiles" :class="{'active': service?.files?.list}")
+                    .actions(@click="deleteFiles" :class="{'active': !isEmpty}")
                         Icon trash
                         span Delete
             .filesContainer
                 .fetching(v-if="isFetching" style="text-align:center;")
                     Icon.animationRotation refresh
-                template(v-else-if="service?.files")
+                template(v-else-if="service?.files && !isEmpty")
                     .directoryName
                         Icon(@click="goUpDirectory") upload
                         .pathWrapper
@@ -147,7 +148,7 @@ template(v-else)
                     div.noFiles
                         div.title No Files
                         p You have not uploaded any files
-
+    // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
             EditService(@close="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
@@ -159,7 +160,7 @@ template(v-else)
     sui-overlay(v-if="isUpload" ref="uploadWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
         div.overlay
             AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
-
+// delete window
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
         .title
@@ -195,23 +196,31 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed } from 'vue';
-import { state, skapi } from '@/main';
-import { localeName, dateFormat, getSize } from '@/helper/common';
-import { useRoute, useRouter } from 'vue-router';
+import {
+  inject,
+  reactive,
+  ref,
+  watch,
+  nextTick,
+  onBeforeMount,
+  computed,
+} from "vue";
+import { state, skapi } from "@/main";
+import { localeName, dateFormat, getSize } from "@/helper/common";
+import { useRoute, useRouter } from "vue-router";
 
-import EditService from '@/views/Service/EditService.vue';
-import Subdomain from '@/views/Service/Subdomain.vue';
-import Icon from '@/components/Icon.vue';
-import SubmitButton from '@/components/SubmitButton.vue';
-import AddFiles from '@/views/Service/AddFiles.vue'
+import EditService from "@/views/Service/EditService.vue";
+import Subdomain from "@/views/Service/Subdomain.vue";
+import Icon from "@/components/Icon.vue";
+import SubmitButton from "@/components/SubmitButton.vue";
+import AddFiles from "@/views/Service/AddFiles.vue";
 
 const route = useRoute();
 const router = useRouter();
 
-let service = inject('service');
-let pageTitle = inject('pageTitle');
-pageTitle.value = 'Service "' + service.value.name + '"'
+let service = inject("service");
+let pageTitle = inject("pageTitle");
+pageTitle.value = 'Service "' + service.value.name + '"';
 
 const settingWindow = ref(null);
 const subdomainWindow = ref(null);
@@ -219,8 +228,8 @@ const uploadWindow = ref(null);
 const deleteConfirmOverlay = ref(null);
 const deleteSubdomainOverlay = ref(null);
 const deleteErrorOverlay = ref(null);
-const confirmationCode = ref('');
-const deleteErrorMessage = ref('');
+const confirmationCode = ref("");
+const deleteErrorMessage = ref("");
 const isEdit = ref(false);
 const isCreate = ref(false);
 const isUpload = ref(false);
@@ -238,550 +247,596 @@ const isComplete = ref(false);
 const directoryFiles = ref({});
 const isSaving = ref(false);
 const numberOfFailedUploads = ref(-1);
-const currentDirectory = ref('/');
-let abortUpload = '';
+const currentDirectory = ref("/");
+let abortUpload = "";
 const selectedFiles = ref([]);
 
 const isDeleting = ref(false);
 
 const informationGrid = reactive([
-    {
-        name: 'Service ID',
-        key: 'service',
-        span: 2
+  {
+    name: "Service ID",
+    key: "service",
+    span: 2,
+  },
+  {
+    name: "Owner's ID",
+    key: "owner",
+    span: 2,
+  },
+  // {
+  //     name: 'Group',
+  //     key: 'group',
+  //     filter: (value) => {
+  //         return value == 1 ? 'Basic' : 'Premium'
+  //     }
+  // },
+  {
+    name: "Service Location",
+    key: "region",
+    filter: (value) => {
+      return localeName(value);
     },
-    {
-        name: 'Owner\'s ID',
-        key: 'owner',
-        span: 2
+  },
+  {
+    name: "Date Created",
+    key: "timestamp",
+    filter: (value) => {
+      return dateFormat(value).split(" ")[0];
     },
-    // {
-    //     name: 'Group',
-    //     key: 'group',
-    //     filter: (value) => {
-    //         return value == 1 ? 'Basic' : 'Premium'
-    //     }
-    // },
-    {
-        name: 'Service Location',
-        key: 'region',
-        filter: (value) => {
-            return localeName(value);
-        }
+  },
+  {
+    name: "Storage Use",
+    key: "storage",
+    filter: (value) => {
+      let val = value || 0;
+      return getSize(val);
     },
-    {
-        name: 'Date Created',
-        key: 'timestamp',
-        filter: (value) => {
-            return dateFormat(value).split(' ')[0];
-        }
-    },
-    {
-        name: 'Storage Use',
-        key: 'storage',
-        filter: (value) => {
-            let val = value || 0;
-            return getSize(val);
-        }
-    },
-    {
-        name: '# of Users',
-        key: 'users'
-    },
-    // {
-    //     name: '# of Newsletter Sub',
-    //     key: 'newsletter_subscribers'
-    // },
+  },
+  {
+    name: "# of Users",
+    key: "users",
+  },
+  // {
+  //     name: '# of Newsletter Sub',
+  //     key: 'newsletter_subscribers'
+  // },
 ]);
 
 const settingGrid = reactive([
-    {
-        name: 'Enable/Disable',
-        key: 'active',
-        filter: () => {
-            return 1
-            // return .indicator(:class="{'active': service.active > 0}")
-        }
+  {
+    name: "Enable/Disable",
+    key: "active",
+    filter: () => {
+      return 1;
+      // return .indicator(:class="{'active': service.active > 0}")
     },
-    {
-        name: 'Name of Service',
-        key: 'name',
-    },
-    {
-        name: 'CORS',
-        key: 'cors',
-        tip: 'When CORS is set, your website will not be able to connect to your service unless the request comes from a valid host.',
-    },
-    {
-        name: 'API Key',
-        key: 'api_key',
-        tip: 'You can set your own private API key if you wish to integrate your users\' secure requests to your external backend server.',
-    },
+  },
+  {
+    name: "Name of Service",
+    key: "name",
+  },
+  {
+    name: "CORS",
+    key: "cors",
+    tip: "When CORS is set, your website will not be able to connect to your service unless the request comes from a valid host.",
+  },
+  {
+    name: "API Key",
+    key: "api_key",
+    tip: "You can set your own private API key if you wish to integrate your users' secure requests to your external backend server.",
+  },
 ]);
 
 const edit = () => {
-    if (!state.user.email_verified) return false;
-    isEdit.value = true;
-}
+  if (!state.user.email_verified) return false;
+  isEdit.value = true;
+};
 
 const create = () => {
-    if (!state.user.email_verified) return false;
-    isCreate.value = true;
-}
+  if (!state.user.email_verified) return false;
+  isCreate.value = true;
+};
 
 const upload = () => {
-    if (!state.user.email_verified) return false;
-    isUpload.value = true;
-}
+  if (!state.user.email_verified) return false;
+  isUpload.value = true;
+};
 
 const deleteServiceAsk = () => {
-    if (!state.user.email_verified) return;
-    deleteConfirmOverlay.value.open();
-}
+  if (!state.user.email_verified) return;
+  deleteConfirmOverlay.value.open();
+};
 
 const deleteSubdomainAsk = () => {
-    if (!state.user.email_verified) return;
-    deleteSubdomainOverlay.value.open();
-}
+  if (!state.user.email_verified) return;
+  deleteSubdomainOverlay.value.open();
+};
 
 //upload File
 const addFileButtonHandler = () => {
-    const parent = fileUpload.value.click();
-}
+  const parent = fileUpload.value.click();
+};
 
 const addFolderButtonHandler = () => {
-    const parent = folderUpload.value.click();
-}
+  const parent = folderUpload.value.click();
+};
 
 const goto = (name) => {
-    currentDirectory.value = name;
-    getDirectory(name.slice(0, -1).split('/'));
-}
+  currentDirectory.value = name;
+  getDirectory(name.slice(0, -1).split("/"));
+};
 
 const goUpDirectory = () => {
-    if (currentDirectory.value !== '/') {
-        let directory = currentDirectory.value.slice(0, -1).split('/');
-        console.log(directory);
-        directory.splice(-1);
-        getDirectory(directory);
-        currentDirectory.value = `${directory.join('/')}/`;
-    } else {
-        getDirectory();
-    }
-}
+  if (currentDirectory.value !== "/") {
+    let directory = currentDirectory.value.slice(0, -1).split("/");
+    console.log(directory);
+    directory.splice(-1);
+    getDirectory(directory);
+    currentDirectory.value = `${directory.join("/")}/`;
+  } else {
+    getDirectory();
+  }
+};
 
 const onDrop = (event) => {
-    const readEntriesAsync = (item) => {
-        let reader = item.createReader();
-        reader.readEntries((contents) => {
-            for (let content of contents) {
-                if (content.isDirectory) {
-                    readEntriesAsync(content)
-                } else {
-                    getFileAsync(content, content.fullPath)
-                }
-            }
-        })
-    }
-
-    const getFileAsync = (item, path) => {
-        console.log(item, path);
-
-        item.file((file) => {
-            if (path) {
-                fileList.value[path?.substring(1)] = {
-                    file,
-                    progress: 0
-                };
-            } else {
-                // fileList[f.name] = file;
-                fileList.value[file.name] = {
-                    file,
-                    progress: 0
-                };
-            }
-            filesToUpload.value++;
-        });
-    }
-
-    let items = event.dataTransfer.items;
-    event.preventDefault();
-
-    for (let item of items) {
-        let content = item.webkitGetAsEntry();
+  const readEntriesAsync = (item) => {
+    let reader = item.createReader();
+    reader.readEntries((contents) => {
+      for (let content of contents) {
         if (content.isDirectory) {
-            readEntriesAsync(content);
+          readEntriesAsync(content);
         } else {
-            getFileAsync(content);
+          getFileAsync(content, content.fullPath);
         }
+      }
+    });
+  };
+
+  const getFileAsync = (item, path) => {
+    console.log(item, path);
+
+    item.file((file) => {
+      if (path) {
+        fileList.value[path?.substring(1)] = {
+          file,
+          progress: 0,
+        };
+      } else {
+        // fileList[f.name] = file;
+        fileList.value[file.name] = {
+          file,
+          progress: 0,
+        };
+      }
+      filesToUpload.value++;
+    });
+  };
+
+  let items = event.dataTransfer.items;
+  event.preventDefault();
+
+  for (let item of items) {
+    let content = item.webkitGetAsEntry();
+    if (content.isDirectory) {
+      readEntriesAsync(content);
+    } else {
+      getFileAsync(content);
     }
-}
+  }
+};
 
 const addFolders = (event) => {
-    if (isComplete.value) {
-        console.log({ isComplete: isComplete.value })
-        fileList.value = {}
-        isComplete.value = false
-    }
-    const files = event.target.files;
-    for (let file of files) {
-        fileList.value[file.webkitRelativePath] = {
-            file,
-            progress: 0
-        };
-        filesToUpload.value++;
-    }
+  if (isComplete.value) {
+    console.log({ isComplete: isComplete.value });
+    fileList.value = {};
+    isComplete.value = false;
+  }
+  const files = event.target.files;
+  for (let file of files) {
+    fileList.value[file.webkitRelativePath] = {
+      file,
+      progress: 0,
+    };
+    filesToUpload.value++;
+  }
 
-    folderUpload.value.value = '';
-}
+  folderUpload.value.value = "";
+};
 
 const addFiles = (event) => {
-    if (isComplete.value) {
-        fileList.value = {};
-        filesToUpload.value = 0;
-        isComplete.value = false;
-    }
-    const files = event.target.files;
+  if (isComplete.value) {
+    fileList.value = {};
+    filesToUpload.value = 0;
+    isComplete.value = false;
+  }
+  const files = event.target.files;
 
-    for (let file of files) {
-        fileList.value[file.name] = {
-            file,
-            progress: 0
-        };
-        filesToUpload.value++;
-    }
+  for (let file of files) {
+    fileList.value[file.name] = {
+      file,
+      progress: 0,
+    };
+    filesToUpload.value++;
+  }
 
-    fileUpload.value.value = '';
-}
+  fileUpload.value.value = "";
+};
 
 const uploadFiles = async () => {
-    console.log(filesToUpload.value);
-    if (filesToUpload.value <= 0) return false;
-    let formData = new FormData();
+  console.log(filesToUpload.value);
+  if (filesToUpload.value <= 0) return false;
+  let formData = new FormData();
 
-    for (let key in fileList.value) {
-        formData.append(key, fileList.value[key].file, key);
-    }
-    isSaving.value = true;
-    try {
-        state.blockingPromise = await skapi.uploadFiles(formData, {
-            service: service.value.service,
-            request: 'host',
-            progress: (e) => {
-                if (abortUpload === e.currentFile.name && e.progress !== 100) {
-                    e.abort();
-                    fileList.value[e.currentFile.name].progress = false;
-                    abortUpload = '';
-                } else {
-                    if (e.failed.length > numberOfFailedUploads.value) {
-                        numberOfFailedUploads.value++;
-                        filesToUpload.value--;
-                    }
-                    let progress = e.progress;
-                    fileList.value[e.currentFile.name].abort = e.abort;
-                    fileList.value[e.currentFile.name].progress = e.progress;
-                    if (!fileList.value[e.currentFile.name].currentProgress) fileList.value[e.currentFile.name].currentProgress = 0;
+  for (let key in fileList.value) {
+    formData.append(key, fileList.value[key].file, key);
+  }
+  isSaving.value = true;
+  try {
+    state.blockingPromise = await skapi.uploadFiles(formData, {
+      service: service.value.service,
+      request: "host",
+      progress: (e) => {
+        if (abortUpload === e.currentFile.name && e.progress !== 100) {
+          e.abort();
+          fileList.value[e.currentFile.name].progress = false;
+          abortUpload = "";
+        } else {
+          if (e.failed.length > numberOfFailedUploads.value) {
+            numberOfFailedUploads.value++;
+            filesToUpload.value--;
+          }
+          let progress = e.progress;
+          fileList.value[e.currentFile.name].abort = e.abort;
+          fileList.value[e.currentFile.name].progress = e.progress;
+          if (!fileList.value[e.currentFile.name].currentProgress)
+            fileList.value[e.currentFile.name].currentProgress = 0;
 
-                    let change = setInterval(() => {
-                        if (fileList.value[e.currentFile.name].currentProgress < progress) {
-                            fileList.value[e.currentFile.name].currentProgress += 1;
-                        }
-                        if (fileList.value[e.currentFile.name].currentProgress === progress) {
-                            filesToUpload.value--;
-                            console.log(e.currentFile);
-                            service.value.files.list[e.currentFile.name] = {
-                                file: e.currentFile,
-                                progress: 0
-                            };
-                            clearInterval(change)
-                        }
-                    }, 5);
-                }
+          let change = setInterval(() => {
+            if (fileList.value[e.currentFile.name].currentProgress < progress) {
+              fileList.value[e.currentFile.name].currentProgress += 1;
             }
-        });
-    } catch (e) {
-        console.log({ e });
-    } finally {
-        isSaving.value = false;
-        isComplete.value = true;
-    }
-}
+            if (
+              fileList.value[e.currentFile.name].currentProgress === progress
+            ) {
+              filesToUpload.value--;
+              console.log(e.currentFile);
+              service.value.files.list[e.currentFile.name] = {
+                file: e.currentFile,
+                progress: 0,
+              };
+              clearInterval(change);
+            }
+          }, 5);
+        }
+      },
+    });
+  } catch (e) {
+    console.log({ e });
+  } finally {
+    isSaving.value = false;
+    isComplete.value = true;
+  }
+};
 
 const getDirectory = (directory) => {
-    isFetching.value = true;
+  isFetching.value = true;
 
-    if (!directory && service.value.hasOwnProperty('files')) {
-        directoryFiles.value = service.value.files.list;
-        return true;
-    }
+  if (!directory && service.value.hasOwnProperty("files")) {
+    directoryFiles.value = service.value.files.list;
+    isEmpty.value = false;
+    return true;
+  } else if (!service.value.hasOwnProperty("files")) {
+    isEmpty.value = true;
+  }
 
-    function getCurrentDirectoryFiles(directory) {
-        let directoryFiles = service.value.files.list;
-        if (directory) {
-            for (let i = 1; i < directory.length; i++) {
-                directoryFiles = directoryFiles[`${directory[i]}/`].files.list;
-            }
-        }
-        return directoryFiles
-    }
-
-    if (service.value?.files) {
-        let directoryCheck = service.value.files.list;
-        for (let i = 1; i < directory.length; i++) {
-            directoryCheck = Object.keys(directoryCheck?.[`${directory[i]}/`]?.files.list).length ? directoryCheck?.[`${directory[i]}/`]?.files.list : null;
-        }
-        if (!directoryCheck) {
-            directoryFiles.value = {};
-        } else {
-            directoryFiles.value = getCurrentDirectoryFiles(directory);
-            console.log("File exists!", directoryCheck);
-            isFetching.value = false;
-            return true;
-        }
-    }
-
-    directoryFiles.value = {};
-
-    let params = {
-        service: service.value.service
-    }
-
+  function getCurrentDirectoryFiles(directory) {
+    let directoryFiles = service.value.files.list;
     if (directory) {
-        params.dir = `${directory.join('/')}/`;
+      for (let i = 1; i < directory.length; i++) {
+        directoryFiles = directoryFiles[`${directory[i]}/`].files.list;
+      }
     }
+    return directoryFiles;
+  }
 
-    skapi.listHostDirectory(params).then((files) => {
-        if (!service.value.hasOwnProperty('files')) {
-            service.value.files = {
-                endOfList: files.endOfList,
-                list: {}
-            }
-            console.log(service.value.files)
+  if (service.value?.files) {
+    let directoryCheck = service.value.files.list;
+    for (let i = 1; i < directory.length; i++) {
+      directoryCheck = Object.keys(
+        directoryCheck?.[`${directory[i]}/`]?.files.list
+      ).length
+        ? directoryCheck?.[`${directory[i]}/`]?.files.list
+        : null;
+    }
+    if (!directoryCheck) {
+      directoryFiles.value = {};
+    } else {
+      directoryFiles.value = getCurrentDirectoryFiles(directory);
+      console.log("File exists!", directoryCheck);
+      isFetching.value = false;
+      return true;
+    }
+  }
+
+  directoryFiles.value = {};
+
+  let params = {
+    service: service.value.service,
+  };
+
+  if (directory) {
+    params.dir = `${directory.join("/")}/`;
+  }
+
+  skapi.listHostDirectory(params).then((files) => {
+    if (!service.value.hasOwnProperty("files")) {
+      service.value.files = {
+        endOfList: files.endOfList,
+        list: {},
+      };
+    }
+    // console.log(Object.keys(service.value.files.list).length);
+    // console.log(files.list.length);
+    for (let file of files.list) {
+    //   console.log(file);
+      if (files.list.length == 0) {
+        isEmpty.value = true;
+      } else {
+        isEmpty.value = false;
+      }
+      
+      if (file.type === "folder") {
+        let dir = file.name.substring(file.name.indexOf("/") + 1);
+
+        if (directory) {
+          let currentDirectory = service.value;
+          for (let i = 1; i < directory.length; i++) {
+            currentDirectory = currentDirectory.files.list[`${directory[i]}/`];
+          }
+          let folderName = dir.slice(0, -1).split("/");
+
+          currentDirectory.files.endOfList = files.endOfList;
+          currentDirectory.files.list[`${folderName[folderName.length - 1]}/`] =
+            {
+              type: "folder",
+              name: `${folderName[folderName.length - 1]}/`,
+              files: {
+                endOfList: false,
+                list: {},
+              },
+            };
+          directoryFiles.value = currentDirectory.files.list;
+        } else {
+          service.value.files.list[dir] = {
+            type: "folder",
+            name: dir,
+            files: {
+              endOfList: false,
+              list: {},
+            },
+          };
+          directoryFiles.value = service.value.files.list;
         }
-        console.log(files.list);
-        for (let file of files.list) {
-            console.log(file);
-            if (file.type === 'folder') {
-                let dir = file.name.substring(file.name.indexOf("/") + 1);
+      } else {
+        let name = file.name.substring(file.name.indexOf("/") + 1);
+        let subdomain = file.name.substring(0, file.name.indexOf("/"));
+        let url = `https://${subdomain}.skapi.com/${name}`;
 
-                if (directory) {
-                    let currentDirectory = service.value;
-                    for (let i = 1; i < directory.length; i++) {
-                        currentDirectory = currentDirectory.files.list[`${directory[i]}/`]
-                    }
-                    let folderName = dir.slice(0, -1).split('/');
+        console.log(name, subdomain, url);
 
-                    currentDirectory.files.endOfList = files.endOfList;
-                    currentDirectory.files.list[`${folderName[folderName.length - 1]}/`] = {
-                        type: 'folder',
-                        name: `${folderName[folderName.length - 1]}/`,
-                        files: {
-                            endOfList: false,
-                            list: {}
-                        }
-                    };
-                    directoryFiles.value = currentDirectory.files.list;
-                } else {
-                    service.value.files.list[dir] = {
-                        type: 'folder',
-                        name: dir,
-                        files: {
-                            endOfList: false,
-                            list: {}
-                        }
-                    }
-                    directoryFiles.value = service.value.files.list;
-                }
-            } else {
-                let name = file.name.substring(file.name.indexOf("/") + 1);
-                let subdomain = file.name.substring(0, file.name.indexOf("/"));
-                let url = `https://${subdomain}.skapi.com/${name}`
+        if (directory) {
+          let currentDirectory = service.value;
 
-                console.log(name, subdomain, url)
+          for (let i = 1; i < directory.length; i++) {
+            currentDirectory = currentDirectory.files.list[`${directory[i]}/`];
+          }
 
-                if (directory) {
-                    let currentDirectory = service.value;
+          currentDirectory.files.endOfList = files.endOfList;
+          let nameArr = name.split("/");
+          let fileName = nameArr[nameArr.length - 1];
 
-                    for (let i = 1; i < directory.length; i++) {
-                        currentDirectory = currentDirectory.files.list[`${directory[i]}/`]
-                    }
+          currentDirectory.files.list[fileName] = {
+            type: "file",
+            name: name,
+            url,
+          };
+          directoryFiles.value = currentDirectory.files.list;
+        } else {
+          let nameArr = name.split("/");
+          let fileName = nameArr[nameArr.length - 1];
 
-                    currentDirectory.files.endOfList = files.endOfList;
-                    let nameArr = name.split('/');
-                    let fileName = nameArr[nameArr.length - 1]
+          console.log(nameArr, fileName);
 
-                    currentDirectory.files.list[fileName] = {
-                        type: 'file',
-                        name: name,
-                        url,
-                    };
-                    directoryFiles.value = currentDirectory.files.list;
-                } else {
-                    let nameArr = name.split('/');
-                    let fileName = nameArr[nameArr.length - 1]
-
-                    console.log(nameArr, fileName)
-
-                    service.value.files.list[fileName] = {
-                        type: 'file',
-                        name: name,
-                        url,
-                    };
-                    directoryFiles.value = service.value.files.list;
-                }
-            }
+          service.value.files.list[fileName] = {
+            type: "file",
+            name: name,
+            url,
+          };
+          directoryFiles.value = service.value.files.list;
         }
-        isFetching.value = false;
-    });
-}
+      }
+    }
+    isFetching.value = false;
+  });
+};
 
 const checkboxHandler = (e) => {
-    if (e.target.checked) {
-        selectedFiles.value.push(`${service.value.subdomain}/${e.target.value}`);
-    } else {
-        selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`), 1);
-    }
-}
+  if (e.target.checked) {
+    selectedFiles.value.push(`${service.value.subdomain}/${e.target.value}`);
+  } else {
+    selectedFiles.value.splice(
+      selectedFiles.value.indexOf(
+        `${service.value.subdomain}/${e.target.value}`
+      ),
+      1
+    );
+  }
+};
 
 const deleteFiles = () => {
-    isDeleting.value = true;
-    skapi.deleteHostFile({
-        keys: selectedFiles.value,
-        service: service.value.service
-    }).then((res) => {
-        selectedFiles.value.forEach(path => {
-            console.log({ path })
-            let dir = service.value.files.list;
-            let previousDir = service.value.files.list;
-            let newPathArr = path.split('/');
-            if (!newPathArr[newPathArr.length - 1]) {
-                newPathArr.pop();
-                newPathArr[newPathArr.length - 1] = newPathArr[newPathArr.length - 1] + '/';
-            }
-            for (let i = 1; i < newPathArr.length - 1; i++) {
-                if (i > 1) {
-                    previousDir = previousDir[newPathArr[i - 1] + '/'].files.list;
-                }
-                dir = dir[newPathArr[i] + '/'].files.list;
-            }
-            if (!dir[newPathArr[newPathArr.length - 1]]) {
-                console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]])
-            }
-            console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]])
-            console.log(newPathArr[newPathArr.length - 1])
-            delete dir[newPathArr[newPathArr.length - 1]];
-            if (Object.keys(dir).length === 0) {
-                goUpDirectory();
-                dir = service.value.files.list;
-                delete previousDir[newPathArr[newPathArr.length - 2] + '/'];
-            }
-        });
-        isDeleting.value = false;
-        selectedFiles.value = [];
+  isDeleting.value = true;
+  skapi
+    .deleteHostFile({
+      keys: selectedFiles.value,
+      service: service.value.service,
+    })
+    .then((res) => {
+      selectedFiles.value.forEach((path) => {
+        console.log({ path });
+        let dir = service.value.files.list;
+        let previousDir = service.value.files.list;
+        let newPathArr = path.split("/");
+        if (!newPathArr[newPathArr.length - 1]) {
+          newPathArr.pop();
+          newPathArr[newPathArr.length - 1] =
+            newPathArr[newPathArr.length - 1] + "/";
+        }
+        for (let i = 1; i < newPathArr.length - 1; i++) {
+          if (i > 1) {
+            previousDir = previousDir[newPathArr[i - 1] + "/"].files.list;
+          }
+          dir = dir[newPathArr[i] + "/"].files.list;
+        }
+        if (!dir[newPathArr[newPathArr.length - 1]]) {
+          console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]]);
+        }
+        console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]]);
+        console.log(newPathArr[newPathArr.length - 1]);
+        delete dir[newPathArr[newPathArr.length - 1]];
+        if (Object.keys(dir).length === 0) {
+          goUpDirectory();
+          dir = service.value.files.list;
+          delete previousDir[newPathArr[newPathArr.length - 2] + "/"];
+        }
+      });
+      isDeleting.value = false;
+      selectedFiles.value = [];
     });
-}
+};
 
 const currentDirectoryArray = computed(() => {
-    selectedFiles.value = [];
-    return currentDirectory.value.split('/').reverse().filter((value) => {
-        return value;
+  selectedFiles.value = [];
+  return currentDirectory.value
+    .split("/")
+    .reverse()
+    .filter((value) => {
+      return value;
     });
-})
+});
 
 const jumpto = (index) => {
-    let localCurrentDirectory = currentDirectory.value;
-    let directory = [...localCurrentDirectory.split('/').filter((path) => path)];
-    goto(`/${directory.slice(0, index).join('/')}/`);
-}
+  let localCurrentDirectory = currentDirectory.value;
+  let directory = [...localCurrentDirectory.split("/").filter((path) => path)];
+  goto(`/${directory.slice(0, index).join("/")}/`);
+};
 
 const deleteService = () => {
-    isDisabled.value = true;
-    if (confirmationCode.value !== service.value.service) {
-        confirmationCode.value = '';
-        deleteErrorMessage.value = "Your service code did not match.";
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
-        deleteErrorOverlay.value.open();
-        isDisabled.value = false;
-        return;
-    }
+  isDisabled.value = true;
+  if (confirmationCode.value !== service.value.service) {
+    confirmationCode.value = "";
+    deleteErrorMessage.value = "Your service code did not match.";
+    if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+    deleteErrorOverlay.value.open();
+    isDisabled.value = false;
+    return;
+  }
 
-    skapi.deleteService(service.value.service).then(() => {
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
-        router.replace('/admin');
-    }).catch(() => {
-        deleteErrorMessage.value = "Please disable your service before deleting it.";
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
-        deleteErrorOverlay.value.open();
-    }).finally(() => {
-        confirmationCode.value = '';
-        isDisabled.value = false;
+  skapi
+    .deleteService(service.value.service)
+    .then(() => {
+      if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+      router.replace("/admin");
+    })
+    .catch(() => {
+      deleteErrorMessage.value =
+        "Please disable your service before deleting it.";
+      if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+      deleteErrorOverlay.value.open();
+    })
+    .finally(() => {
+      confirmationCode.value = "";
+      isDisabled.value = false;
     });
-}
+};
 
 const deleteSubdomain = async () => {
-    isDisabled.value = true;
-    if (confirmationCode.value !== service.value.subdomain) {
-        confirmationCode.value = '';
-        deleteErrorMessage.value = "Your subdomain name did not match.";
-        if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-        deleteErrorOverlay.value.open();
-        isDisabled.value = false;
-        return;
-    }
+  isDisabled.value = true;
+  if (confirmationCode.value !== service.value.subdomain) {
+    confirmationCode.value = "";
+    deleteErrorMessage.value = "Your subdomain name did not match.";
+    if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
+    deleteErrorOverlay.value.open();
+    isDisabled.value = false;
+    return;
+  }
 
-    try {
-        await skapi.registerSubdomain({
-            service: service.value.service,
-            subdomain: service.value.subdomain,
-            exec: 'remove'
-        }).then(() => {
-            if (service.value.subdomain.includes('*')) {
-                deleting.value = true;
-            } else {
-                deleting.value = false;
-            }
-        })
-    } catch (e) {
-        deleteErrorMessage.value = e.message;
-        if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-        deleteErrorOverlay.value.open();
-        isDisabled.value = false;
-    } finally {
-        deleting.value = true;
-        domain.value = false;
-        isDisabled.value = false;
-        deleteSubdomainOverlay.value.close();
-    }
+  try {
+    await skapi
+      .registerSubdomain({
+        service: service.value.service,
+        subdomain: service.value.subdomain,
+        exec: "remove",
+      })
+      .then(() => {
+        if (service.value.subdomain.includes("*")) {
+          deleting.value = true;
+        } else {
+          deleting.value = false;
+        }
+      });
+  } catch (e) {
+    deleteErrorMessage.value = e.message;
+    if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
+    deleteErrorOverlay.value.open();
+    isDisabled.value = false;
+  } finally {
+    deleting.value = true;
+    domain.value = false;
+    isDisabled.value = false;
+    deleteSubdomainOverlay.value.close();
+  }
+};
+
+if (!service.value.hasOwnProperty("storage")) {
+  skapi.storageInformation(service.value.service).then((storage) => {
+    service.value.storage = storage.cloud + storage.database + storage.email;
+  });
 }
 
-if (!service.value.hasOwnProperty('storage')) {
-    skapi.storageInformation(service.value.service).then((storage) => {
-        service.value.storage = storage.cloud + storage.database + storage.email;
-    });
-}
-
-watch(() => isEdit.value, async () => {
+watch(
+  () => isEdit.value,
+  async () => {
     await nextTick();
     if (isEdit.value) {
-        settingWindow.value.open();
+      settingWindow.value.open();
     }
-});
+  }
+);
 
-watch(() => isCreate.value, async () => {
+watch(
+  () => isCreate.value,
+  async () => {
     await nextTick();
     if (isCreate.value) {
-        subdomainWindow.value.open();
+      subdomainWindow.value.open();
     }
-});
+  }
+);
 
-watch(() => isUpload.value, async () => {
+watch(
+  () => isUpload.value,
+  async () => {
     await nextTick();
     if (isUpload.value) {
-        uploadWindow.value.open();
+      uploadWindow.value.open();
     }
-});
+  }
+);
 
-watch(() => service.value.subdomain, () => {
+watch(
+  () => service.value.subdomain,
+  () => {
     // if (service.value.subdomain) {
     //     domain.value = true;
 
@@ -795,706 +850,708 @@ watch(() => service.value.subdomain, () => {
     //     domain.value = false;
     // }
 
-    if ('subdomain' in service.value) {
-        if (service.value.subdomain.includes('*')) {
-            domain.value = false;
-            deleting.value = true;
-        } else {
-            domain.value = true;
-            deleting.value = false;
-            getDirectory();
-        }
-    } else {
+    if ("subdomain" in service.value) {
+      if (service.value.subdomain.includes("*")) {
         domain.value = false;
+        deleting.value = true;
+      } else {
+        domain.value = true;
         deleting.value = false;
+        getDirectory();
+      }
+    } else {
+      domain.value = false;
+      deleting.value = false;
     }
-});
+  }
+);
 
 onBeforeMount(() => {
-    if ('subdomain' in service.value) {
-        if (service.value.subdomain.includes('*')) {
-            domain.value = false;
-            deleting.value = true;
-        } else {
-            domain.value = true;
-            deleting.value = false;
-            getDirectory();
-        }
+  if ("subdomain" in service.value) {
+    if (service.value.subdomain.includes("*")) {
+      domain.value = false;
+      deleting.value = true;
     } else {
-        domain.value = false;
-        deleting.value = false;
+      domain.value = true;
+      deleting.value = false;
+      getDirectory();
     }
-    // if (service.value.subdomain) {
-    //     domain.value = true;
+  } else {
+    domain.value = false;
+    deleting.value = false;
+  }
+  // if (service.value.subdomain) {
+  //     domain.value = true;
 
-    //     if (service.value.subdomain.includes('*')) {
-    //         domain.value = false;
-    //         deleting.value = true;
-    //     } else {
-    //         deleting.value = false;
-    //     }
-    // } else {
-    //     domain.value = false;
-    // }
-})
+  //     if (service.value.subdomain.includes('*')) {
+  //         domain.value = false;
+  //         deleting.value = true;
+  //     } else {
+  //         deleting.value = false;
+  //     }
+  // } else {
+  //     domain.value = false;
+  // }
+});
 // console.log(service.value.subdomain, service.value.service)
 </script>
 
 <style lang="less" scoped>
 .container {
-    margin: 0 0 40px 0;
+  margin: 0 0 40px 0;
 
-    .innerContainer {
-        padding: 40px;
-        background: #434343;
-        border-radius: 12px;
-
-        .titleActionsWrapper {
-            margin-bottom: 32px;
-
-            h2 {
-                font-size: 20px;
-                font-weight: normal;
-            }
-
-            .actionWrapper {
-                display: flex;
-                flex-wrap: nowrap;
-
-                .actions {
-                    &:first-child {
-                        margin-right: 20px;
-                    }
-                    &:last-child {
-                        opacity: 0.5;
-
-                        &.active {
-                            opacity: 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    h2,
-    p {
-        color: rgba(255, 255, 255, .85);
-        margin: 0;
-    }
-
-    h2 {
-        display: inline-block;
-        vertical-align: middle;
-        font-size: 24px;
-        margin-bottom: 50px;
-        font-weight: bold;
-    }
-
-    p {
-        color: rgba(255, 255, 255, .85);
-        line-height: 1.5;
-    }
+  .innerContainer {
+    padding: 40px;
+    background: #434343;
+    border-radius: 12px;
 
     .titleActionsWrapper {
+      margin-bottom: 32px;
+
+      h2 {
+        font-size: 20px;
+        font-weight: normal;
+      }
+
+      .actionWrapper {
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 16px;
+        flex-wrap: nowrap;
 
-        h2 {
-            font-size: 20px;
-            font-weight: normal;
+        .actions {
+          &:first-child {
+            margin-right: 20px;
+          }
+          &:last-child {
+            opacity: 0.5;
+
+            &.active {
+              opacity: 1;
+            }
+          }
         }
+      }
+    }
+  }
+
+  h2,
+  p {
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+  }
+
+  h2 {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 24px;
+    margin-bottom: 50px;
+    font-weight: bold;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.5;
+  }
+
+  .titleActionsWrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+
+    h2 {
+      font-size: 20px;
+      font-weight: normal;
+    }
+  }
+
+  .titleWrapper {
+    h2 {
+      margin: 0;
     }
 
-    .titleWrapper {
-        h2 {
-            margin: 0;
-        }
+    svg {
+      margin-right: 8px;
+    }
+  }
 
-        svg {
-            margin-right: 8px;
-        }
+  .actions {
+    cursor: pointer;
+    user-select: none;
+
+    svg {
+      margin-right: 4px;
     }
 
-    .actions {
-        cursor: pointer;
-        user-select: none;
-
-        svg {
-            margin-right: 4px;
-        }
-
-        span {
-            vertical-align: middle;
-        }
-
-        &.disabled {
-            opacity: 0.4;
-        }
+    span {
+      vertical-align: middle;
     }
 
-    &:last-child {
-        margin-bottom: 0;
+    &.disabled {
+      opacity: 0.4;
     }
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .informationGrid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    column-gap: 20px;
-    row-gap: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  column-gap: 20px;
+  row-gap: 28px;
 
-    &Item {
-        min-width: 0;
+  &Item {
+    min-width: 0;
 
-        .name {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 8px;
-        }
-
-        .value {
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.85);
-            word-break: break-all;
-        }
+    .name {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
     }
+
+    .value {
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.85);
+      word-break: break-all;
+    }
+  }
 }
 
 .settingGrid {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
 
-    &Item {
-        .name {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 8px;
-        }
-
-        .value {
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.85);
-        }
-
-        &.span2 {
-            grid-column: span 2;
-        }
+  &Item {
+    .name {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
     }
+
+    .value {
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &.span2 {
+      grid-column: span 2;
+    }
+  }
 }
 
 .settingGrid {
-    display: grid;
-    column-gap: 12px;
-    row-gap: 28px;
-    grid-template-columns: repeat(4, calc(25% - 30px)) 72px;
+  display: grid;
+  column-gap: 12px;
+  row-gap: 28px;
+  grid-template-columns: repeat(4, calc(25% - 30px)) 72px;
 
-    &Item {
-        .name {
-            font-size: 14px;
-            line-height: 1;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 8px;
+  &Item {
+    .name {
+      font-size: 14px;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
 
-            span {
-                vertical-align: middle;
-            }
-        }
-
-        .value {
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.85);
-            word-break: break-all;
-
-            span {
-                vertical-align: middle;
-            }
-        }
-
-        &.actions {
-            align-self: flex-end;
-            justify-self: flex-end;
-        }
+      span {
+        vertical-align: middle;
+      }
     }
+
+    .value {
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.85);
+      word-break: break-all;
+
+      span {
+        vertical-align: middle;
+      }
+    }
+
+    &.actions {
+      align-self: flex-end;
+      justify-self: flex-end;
+    }
+  }
 }
 
 .noDomains {
+  color: rgba(255, 255, 255, 0.4);
+  padding-bottom: 35px;
+  margin: 0 -20px -24px -20px;
+  border-radius: 0 0 8px 8px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  opacity: 0.6;
+
+  .title {
+    font-size: 28px;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 20px 0 0 0;
     color: rgba(255, 255, 255, 0.4);
-    padding-bottom: 35px;
-    margin: 0 -20px -24px -20px;
-    border-radius: 0 0 8px 8px;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    opacity: 0.6;
-
-    .title {
-        font-size: 28px;
-    }
-
-    p {
-        font-size: 14px;
-        margin: 20px 0 0 0;
-        color: rgba(255, 255, 255, 0.4);
-    }
+  }
 }
 
 .domainGrid {
-    &.deleting {
-        text-align: center;
-        color: rgba(255, 255, 255, 0.4);
-        padding-bottom: 30px;
+  &.deleting {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    padding-bottom: 30px;
 
-        h3 {
-            font-size: 28px;
-            font-weight: 500;
-            margin: 0 0 20px 0;
-        }
-
-        span {
-            font-size: 14px;
-        }
+    h3 {
+      font-size: 28px;
+      font-weight: 500;
+      margin: 0 0 20px 0;
     }
 
-    &Item {
-        position: relative;
-        width: 100%;
-        background-color: rgba(255, 255, 255, 0.1);
-        padding: 24px;
-        border-radius: 8px;
-
-        .name {
-            font-size: 14px;
-            line-height: 1;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 8px;
-        }
-
-        .value {
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.85);
-            word-break: break-all;
-        }
-
-        a {
-            position: absolute;
-            top: 50%;
-            right: 24px;
-            transform: translateY(-50%);
-            color: #fff;
-        }
+    span {
+      font-size: 14px;
     }
+  }
+
+  &Item {
+    position: relative;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 24px;
+    border-radius: 8px;
+
+    .name {
+      font-size: 14px;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.85);
+      word-break: break-all;
+    }
+
+    a {
+      position: absolute;
+      top: 50%;
+      right: 24px;
+      transform: translateY(-50%);
+      color: #fff;
+    }
+  }
 }
 
 .fileUploadArea {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 28px;
-    border: 1px dashed #FFFFFF;
-    border-radius: 8px;
-    height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  border: 1px dashed #ffffff;
+  border-radius: 8px;
+  height: 100px;
 
-    sui-button {
-        vertical-align: middle;
+  sui-button {
+    vertical-align: middle;
+  }
+
+  &:only-child {
+    margin-bottom: 0;
+  }
+
+  & > div > * {
+    display: inline-block;
+
+    &:first-child {
+      margin-right: 6px;
     }
 
-    &:only-child {
-        margin-bottom: 0;
+    &:last-child {
+      margin-left: 6px;
     }
+  }
 
-    &>div>* {
-        display: inline-block;
+  svg {
+    height: 57px;
+    width: 57px;
+    color: rgba(255, 255, 255, 0.6);
+  }
 
-        &:first-child {
-            margin-right: 6px;
-        }
-
-        &:last-child {
-            margin-left: 6px;
-        }
-    }
+  .error {
+    color: #ff8d3b;
 
     svg {
-        height: 57px;
-        width: 57px;
-        color: rgba(255, 255, 255, .6);
+      height: 24px;
+      width: 24px;
+      fill: #ff8d3b;
     }
-
-    .error {
-        color: #FF8D3B;
-
-        svg {
-            height: 24px;
-            width: 24px;
-            fill: #FF8D3B;
-        }
-    }
+  }
 }
 
 .directoryName {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 40px;
 
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
 
-    svg {
-        margin-right: 16px;
+  svg {
+    margin-right: 16px;
+  }
+
+  & > * {
+    flex-shrink: 0;
+    flex-grow: 0;
+  }
+
+  .pathWrapper {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    direction: rtl;
+    text-align: left;
+
+    .path {
+      unicode-bidi: plaintext;
+      cursor: pointer;
     }
-
-    &>* {
-        flex-shrink: 0;
-        flex-grow: 0;
-    }
-
-    .pathWrapper {
-        display: inline-block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 100%;
-        direction: rtl;
-        text-align: left;
-
-        .path {
-            unicode-bidi: plaintext;
-            cursor: pointer;
-        }
-    }
+  }
 }
 
 .filesContainer {
-    .fileWrapper {
-        border-radius: 8px;
+  .fileWrapper {
+    border-radius: 8px;
 
-        &:nth-child(even) {
-            background: #4a4a4a;
-        }
+    &:nth-child(even) {
+      background: #4a4a4a;
+    }
+  }
+
+  .file {
+    display: flex;
+    align-items: center;
+    height: 52px;
+    padding: 8px 20px;
+
+    &.fade {
+      opacity: 0.5;
     }
 
-    .file {
-        display: flex;
-        align-items: center;
-        height: 52px;
-        padding: 8px 20px;
+    .pathWrapper {
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      direction: rtl;
+      text-align: left;
 
-        &.fade {
-            opacity: 0.5;
-        }
+      a {
+        color: #fff;
+        text-decoration: none;
+      }
 
-        .pathWrapper {
-            display: inline-block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-            direction: rtl;
-            text-align: left;
-
-            a {
-                color: #fff;
-                text-decoration: none;
-            }
-
-            .path {
-                unicode-bidi: plaintext;
-                cursor: pointer;
-            }
-        }
-
-        &>*:not(.pathWrapper) {
-            flex-shrink: 0;
-            flex-grow: 0;
-        }
-
-        a {
-            display: inline-block;
-            vertical-align: middle;
-            width: calc(100% - 32px);
-            color: #fff;
-            text-decoration: none;
-            font-weight: normal;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            direction: rtl;
-            text-align: left;
-        }
-
-        &>sui-input,
-        &>svg {
-            margin-right: 16px;
-        }
-
-        &>sui-input {
-            opacity: 0.5;
-        }
+      .path {
+        unicode-bidi: plaintext;
+        cursor: pointer;
+      }
     }
 
-    .noFiles {
-        padding: 12px 16px;
-        text-align: center;
-        border-radius: 8px;
-
-        .title {
-            font-size: 28px;
-        }
-
-        .title,
-        p {
-            opacity: .4;
-        }
+    & > *:not(.pathWrapper) {
+      flex-shrink: 0;
+      flex-grow: 0;
     }
+
+    a {
+      display: inline-block;
+      vertical-align: middle;
+      width: calc(100% - 32px);
+      color: #fff;
+      text-decoration: none;
+      font-weight: normal;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      direction: rtl;
+      text-align: left;
+    }
+
+    & > sui-input,
+    & > svg {
+      margin-right: 16px;
+    }
+
+    & > sui-input {
+      opacity: 0.5;
+    }
+  }
+
+  .noFiles {
+    padding: 12px 16px;
+    text-align: center;
+    border-radius: 8px;
+
+    .title {
+      font-size: 28px;
+    }
+
+    .title,
+    p {
+      opacity: 0.4;
+    }
+  }
 }
 
 .uploadFilesContainer {
-    margin: 28px -20px;
+  margin: 28px -20px;
 
-    .file {
-        display: flex;
-        align-items: center;
-        height: 52px;
-        padding: 8px 20px;
+  .file {
+    display: flex;
+    align-items: center;
+    height: 52px;
+    padding: 8px 20px;
 
-        .progressBar {
-            display: inline-block;
-            vertical-align: middle;
-            width: 20px;
-            height: 20px;
-            background: var(--progress);
-            border-radius: 50%;
-            position: relative;
-            margin-right: 16px;
+    .progressBar {
+      display: inline-block;
+      vertical-align: middle;
+      width: 20px;
+      height: 20px;
+      background: var(--progress);
+      border-radius: 50%;
+      position: relative;
+      margin-right: 16px;
 
-            .circle {
-                border: 1px solid white;
-                height: 20px;
-                width: 20px;
-                border-radius: 50%;
-                position: absolute;
-                opacity: 0;
+      .circle {
+        border: 1px solid white;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        position: absolute;
+        opacity: 0;
 
-                &~.circle {
-                    border: 1px solid white;
-                    opacity: 0;
-                }
-            }
+        & ~ .circle {
+          border: 1px solid white;
+          opacity: 0;
+        }
+      }
 
-            &::before {
-                content: '';
-                position: absolute;
-                top: calc(50% - (15px / 2));
-                left: calc(50% - (15px / 2));
-                display: block;
-                width: 15px;
-                height: 15px;
-                border-radius: 50%;
-                background-color: #333;
-            }
+      &::before {
+        content: "";
+        position: absolute;
+        top: calc(50% - (15px / 2));
+        left: calc(50% - (15px / 2));
+        display: block;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background-color: #333;
+      }
 
-            &.started {
-                &::after {
-                    position: absolute;
-                    content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='20,5.78 18.22,4 12,10.22 5.78,4 4,5.78 10.22,12 4,18.22 5.78,20 12,13.78 18.22,20 20,18.22 13.78,12 ' fill='white'/%3E%3C/svg%3E");
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-6px, -11px);
-                }
-            }
+      &.started {
+        &::after {
+          position: absolute;
+          content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='20,5.78 18.22,4 12,10.22 5.78,4 4,5.78 10.22,12 4,18.22 5.78,20 12,13.78 18.22,20 20,18.22 13.78,12 ' fill='white'/%3E%3C/svg%3E");
+          top: 50%;
+          left: 50%;
+          transform: translate(-6px, -11px);
+        }
+      }
 
-            &.complete {
-                .circle {
-                    animation: ripple 0.5s ease;
+      &.complete {
+        .circle {
+          animation: ripple 0.5s ease;
 
-                    &~.circle {
-                        animation: smallRipple .3s ease;
-                    }
-                }
-
-                &::before {
-                    top: 0;
-                    left: 0;
-                    width: 20px;
-                    height: 20px;
-                    background-color: #5AD858;
-                    animation: bounce 0.2s ease
-                }
-
-                &::after {
-                    position: absolute;
-                    content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.31,18.6L3,12.29l1.54-1.51l4.77,4.77L19.46,5.4L21,6.91L9.31,18.6z' fill='white'/%3E%3C/svg%3E");
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-9px, -9px);
-                }
-            }
-
-            &.failed {
-                &::before {
-                    top: 0;
-                    left: 0;
-                    width: 20px;
-                    height: 20px;
-                    background-color: #F04E4E;
-                    animation: bounce 0.2s ease
-                }
-
-                &::after {
-                    position: absolute;
-                    content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m10.88,3.45h2.17v11.95h-2.17V3.45Zm2.17,15.21v2.17h-2.17v-2.17h2.17Z' fill='white'/%3E%3C/svg%3E");
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-9px, -9px);
-                }
-            }
+          & ~ .circle {
+            animation: smallRipple 0.3s ease;
+          }
         }
 
-        &:nth-child(even) {
-            background: #4a4a4a;
-
-            .progressBar::before {
-                background-color: #4a4a4a;
-            }
-
-            .progressBar.complete::before {
-                background-color: #5AD858;
-            }
-
-            .progressBar.failed::before {
-                background-color: #F04E4E;
-            }
+        &::before {
+          top: 0;
+          left: 0;
+          width: 20px;
+          height: 20px;
+          background-color: #5ad858;
+          animation: bounce 0.2s ease;
         }
 
-        &>sui-input {
-            margin-right: 16px;
+        &::after {
+          position: absolute;
+          content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.31,18.6L3,12.29l1.54-1.51l4.77,4.77L19.46,5.4L21,6.91L9.31,18.6z' fill='white'/%3E%3C/svg%3E");
+          top: 50%;
+          left: 50%;
+          transform: translate(-9px, -9px);
         }
+      }
+
+      &.failed {
+        &::before {
+          top: 0;
+          left: 0;
+          width: 20px;
+          height: 20px;
+          background-color: #f04e4e;
+          animation: bounce 0.2s ease;
+        }
+
+        &::after {
+          position: absolute;
+          content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m10.88,3.45h2.17v11.95h-2.17V3.45Zm2.17,15.21v2.17h-2.17v-2.17h2.17Z' fill='white'/%3E%3C/svg%3E");
+          top: 50%;
+          left: 50%;
+          transform: translate(-9px, -9px);
+        }
+      }
     }
 
-    .noFiles {
-        padding: 12px 16px;
-        text-align: center;
-        border-radius: 8px;
+    &:nth-child(even) {
+      background: #4a4a4a;
 
-        .title {
-            font-size: 28px;
-        }
+      .progressBar::before {
+        background-color: #4a4a4a;
+      }
 
-        .title,
-        p {
-            opacity: .4;
-        }
+      .progressBar.complete::before {
+        background-color: #5ad858;
+      }
+
+      .progressBar.failed::before {
+        background-color: #f04e4e;
+      }
     }
+
+    & > sui-input {
+      margin-right: 16px;
+    }
+  }
+
+  .noFiles {
+    padding: 12px 16px;
+    text-align: center;
+    border-radius: 8px;
+
+    .title {
+      font-size: 28px;
+    }
+
+    .title,
+    p {
+      opacity: 0.4;
+    }
+  }
 }
 
 .serviceGrid {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+
+  &Item {
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
-    gap: 20px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 24px;
+    border-radius: 8px;
 
-    &Item {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 24px;
-        border-radius: 8px;
+    .content {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
 
-        .content {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
+      .title {
+        display: inline-block;
+        margin-bottom: 28px;
+        font-size: 20px;
 
-            .title {
-                display: inline-block;
-                margin-bottom: 28px;
-                font-size: 20px;
-
-                span {
-                    margin-left: 8px;
-                    vertical-align: middle;
-                }
-            }
-
-            .body {
-                color: rgba(255, 255, 255, 0.85);
-                line-height: 1.5;
-            }
+        span {
+          margin-left: 8px;
+          vertical-align: middle;
         }
+      }
 
-        .goto {
-            text-align: left;
-            margin-top: 40px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            text-decoration: none;
-        }
-    }
-
-    a.serviceGridItem {
-        text-align: left;
+      .body {
         color: rgba(255, 255, 255, 0.85);
-        font-size: 14px;
-        text-decoration: none;
+        line-height: 1.5;
+      }
     }
+
+    .goto {
+      text-align: left;
+      margin-top: 40px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      text-decoration: none;
+    }
+  }
+
+  a.serviceGridItem {
+    text-align: left;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    text-decoration: none;
+  }
 }
 
 sui-tooltip {
-    margin-top: -7px;
-    margin-left: 8px;
+  margin-top: -7px;
+  margin-left: 8px;
 }
 
 .indicator {
-    position: relative;
-    display: inline-block;
-    vertical-align: middle;
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    background: #D9D9D9;
-    border: 0.3px solid #595959;
-    box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.25), inset 1px 1px 2px rgba(255, 255, 255, 0.65);
-    margin-right: 8px;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  border: 0.3px solid #595959;
+  box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.25),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.65);
+  margin-right: 8px;
 
-    &.active {
-        background: #5AD858;
-    }
+  &.active {
+    background: #5ad858;
+  }
 }
 
 .overlay {
-    padding: 16px;
+  padding: 16px;
 
-    .close {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 32px;
-        height: 32px;
-        background-color: #BFBFBF;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
+  .close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    background-color: #bfbfbf;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
 
-        svg {
-            color: #434343;
-        }
-
-        a {
-            text-align: left;
-            margin-top: 40px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            text-decoration: none;
-        }
+    svg {
+      color: #434343;
     }
+
+    a {
+      text-align: left;
+      margin-top: 40px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      text-decoration: none;
+    }
+  }
 }
 </style>

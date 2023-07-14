@@ -126,19 +126,20 @@ template(v-else)
                             span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
                                 span {{ folder }}/
                             span /
-                    template(v-for="(file, name) in directoryFiles")
-                        .fileWrapper(v-if="file.type === 'folder'")
-                            .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
-                                sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="currentDirectory.slice(1) + file.name")
-                                Icon folder2
-                                .pathWrapper(@click="goto(currentDirectory+=name)")
-                                    span.path {{ name }}                                
-                        .fileWrapper(v-else)
-                            .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + '/' + file.name)}")
-                                sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + '/' + file.name) || null" @change="checkboxHandler" :value="file.name")
-                                Icon file
-                                a(:href="file.url" download).pathWrapper
-                                    span.path {{ name }}
+                    .directoryFiles
+                        template(v-for="(file, name) in directoryFiles")
+                            .fileWrapper(v-if="file.type === 'folder'")
+                                .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
+                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="currentDirectory.slice(1) + file.name")
+                                    Icon folder2
+                                    .pathWrapper(@click="goto(currentDirectory+=name)")
+                                        span.path {{ name }}                                
+                            .fileWrapper(v-else)
+                                .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + '/' + file.name)}")
+                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + '/' + file.name) || null" @change="checkboxHandler" :value="file.name")
+                                    Icon file
+                                    a(:href="file.url" download).pathWrapper
+                                        span.path {{ name }}
                     //- .paginator(style="text-align:center")
                     //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
                     //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
@@ -1168,6 +1169,11 @@ onBeforeMount(() => {
             cursor: pointer;
         }
     }
+}
+
+.directoryFiles {
+    max-height: 400px;
+    overflow: scroll;
 }
 
 .filesContainer {

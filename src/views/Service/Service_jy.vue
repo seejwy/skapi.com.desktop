@@ -118,38 +118,36 @@ template(v-else)
                         Icon trash
                         span Delete
             .filesContainer
+                .directoryName
+                    Icon(@click="goUpDirectory") upload
+                    .pathWrapper
+                        span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
+                            span {{ folder }}/
+                        span /
                 .fetching(v-if="isFetching" style="text-align:center;")
                     Icon.animationRotation refresh
-                template(v-else-if="isEmpty")
-                    div.noFiles
-                        div.title No Files
-                        p You have not uploaded any files
                 template(v-else-if="service?.files[service.subdomain+currentDirectory].list.length")
-                    .directoryName
-                        Icon(@click="goUpDirectory") upload
-                        .pathWrapper
-                            span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
-                                span {{ folder }}/
-                            span /
-                    .directoryFiles
-                        template(v-for="(file) in service?.files[service.subdomain+currentDirectory].list")
-                            .fileWrapper(v-if="!file.file")
-                                .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
-                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
-                                    Icon folder2
-                                    .path-wrapper(@click="getDirectory(currentDirectory+=file.name)")
-                                        span.path {{ file.name }}
-                            .fileWrapper(v-else)
-                                .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
-                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
-                                    Icon file
-                                    a(:href="`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`" download).path-wrapper
-                                        span.path {{ file.name }}
+                    template(v-for="(file) in service?.files[service.subdomain+currentDirectory].list")
+                        .fileWrapper(v-if="!file.file")
+                            .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
+                                sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
+                                Icon folder2
+                                .path-wrapper(@click="getDirectory(currentDirectory+=file.name)")
+                                    span.path {{ file.name }}
+                        .fileWrapper(v-else)
+                            .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
+                                sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
+                                Icon file
+                                a(:href="`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`" download).path-wrapper
+                                    span.path {{ file.name }}
                     //- .paginator(style="text-align:center")
                     //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
                     //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
                     //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
-
+                //- template(v-else-if="isEmpty")
+                //-     div.noFiles
+                //-         div.title No Files
+                //-         p You have not uploaded any files
     // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
@@ -198,7 +196,15 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed } from "vue";
+import {
+  inject,
+  reactive,
+  ref,
+  watch,
+  nextTick,
+  onBeforeMount,
+  computed,
+} from "vue";
 import { state, skapi } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
@@ -382,9 +388,6 @@ const getDirectory = (directory) => {
     console.log(files);
     if (!service.value.hasOwnProperty("files")) {
       service.value.files = {};
-      isEmpty.value = true;
-    } else {
-      isEmpty.value = false;
     }
     if (
       !service.value.files[
@@ -401,12 +404,6 @@ const getDirectory = (directory) => {
 
     files.list.forEach((file) => {
       let filename = extractFileName(file.name);
-
-      if (files.list.length == 0) {
-        isEmpty.value = true;
-      } else {
-        isEmpty.value = false;
-      }
 
       if (file.type === "folder") {
         service.value.files[

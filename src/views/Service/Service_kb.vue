@@ -120,11 +120,7 @@ template(v-else)
             .filesContainer
                 .fetching(v-if="isFetching" style="text-align:center;")
                     Icon.animationRotation refresh
-                template(v-else-if="isEmpty")
-                    div.noFiles
-                        div.title No Files
-                        p You have not uploaded any files
-                template(v-else-if="service?.files[service.subdomain+currentDirectory].list.length")
+                template(v-else-if="service?.files && !isEmpty")
                     .directoryName
                         Icon(@click="goUpDirectory") upload
                         .pathWrapper
@@ -132,24 +128,27 @@ template(v-else)
                                 span {{ folder }}/
                             span /
                     .directoryFiles
-                        template(v-for="(file) in service?.files[service.subdomain+currentDirectory].list")
-                            .fileWrapper(v-if="!file.file")
+                        template(v-for="(file, name) in directoryFiles")
+                            .fileWrapper(v-if="file.type === 'folder'")
                                 .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
-                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
+                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="currentDirectory.slice(1) + file.name")
                                     Icon folder2
-                                    .path-wrapper(@click="getDirectory(currentDirectory+=file.name)")
-                                        span.path {{ file.name }}
+                                    .pathWrapper(@click="goto(currentDirectory+=name)")
+                                        span.path {{ name }}                                
                             .fileWrapper(v-else)
-                                .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
-                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
+                                .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + '/' + file.name)}")
+                                    sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + '/' + file.name) || null" @change="checkboxHandler" :value="file.name")
                                     Icon file
-                                    a(:href="`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`" download).path-wrapper
-                                        span.path {{ file.name }}
+                                    a(:href="file.url" download).pathWrapper
+                                        span.path {{ name }}
                     //- .paginator(style="text-align:center")
                     //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
                     //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
                     //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
-
+                template(v-else-if="isEmpty")
+                    div.noFiles
+                        div.title No Files
+                        p You have not uploaded any files
     // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
@@ -161,7 +160,7 @@ template(v-else)
 
     sui-overlay(v-if="isUpload" ref="uploadWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
         div.overlay
-            AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}" :currentDirectory="currentDirectory")
+            AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
 // delete window
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
@@ -198,7 +197,15 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed } from "vue";
+import {
+  inject,
+  reactive,
+  ref,
+  watch,
+  nextTick,
+  onBeforeMount,
+  computed,
+} from "vue";
 import { state, skapi } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
@@ -361,170 +368,423 @@ const goto = (name) => {
   getDirectory(name.slice(0, -1).split("/"));
 };
 
-const getDirectory = (directory) => {
-  let findingDirectory =
-    service.value.subdomain + (directory ? directory : "/");
-  if (service.value.files?.[findingDirectory]) {
-    return service.value.files[findingDirectory];
+const goUpDirectory = () => {
+  if (currentDirectory.value !== "/") {
+    let directory = currentDirectory.value.slice(0, -1).split("/");
+    console.log(directory);
+    directory.splice(-1);
+    getDirectory(directory);
+    currentDirectory.value = `${directory.join("/")}/`;
+  } else {
+    getDirectory();
   }
+};
+
+const onDrop = (event) => {
+  const readEntriesAsync = (item) => {
+    let reader = item.createReader();
+    reader.readEntries((contents) => {
+      for (let content of contents) {
+        if (content.isDirectory) {
+          readEntriesAsync(content);
+        } else {
+          getFileAsync(content, content.fullPath);
+        }
+      }
+    });
+  };
+
+  const getFileAsync = (item, path) => {
+    console.log(item, path);
+
+    item.file((file) => {
+      if (path) {
+        fileList.value[path?.substring(1)] = {
+          file,
+          progress: 0,
+        };
+      } else {
+        // fileList[f.name] = file;
+        fileList.value[file.name] = {
+          file,
+          progress: 0,
+        };
+      }
+      filesToUpload.value++;
+    });
+  };
+
+  let items = event.dataTransfer.items;
+  event.preventDefault();
+
+  for (let item of items) {
+    let content = item.webkitGetAsEntry();
+    if (content.isDirectory) {
+      readEntriesAsync(content);
+    } else {
+      getFileAsync(content);
+    }
+  }
+};
+
+const addFolders = (event) => {
+  if (isComplete.value) {
+    fileList.value = {};
+    isComplete.value = false;
+  }
+  const files = event.target.files;
+
+  for (let file of files) {
+    let folderName = props.currentDirectory.slice(1) + file.webkitRelativePath;
+    fileList.value[folderName] = {
+      file,
+      progress: 0,
+    };
+    filesToUpload.value++;
+  }
+
+  folderUpload.value.value = "";
+};
+
+const addFiles = (event) => {
+  if (isComplete.value) {
+    fileList.value = {};
+    filesToUpload.value = 0;
+    isComplete.value = false;
+  }
+
+  const files = event.target.files;
+
+  for (let file of files) {
+    let fileName = props.currentDirectory.slice(1) + file.name;
+
+    fileList.value[fileName] = {
+        file,
+        progress: 0,
+    };
+    filesToUpload.value++;
+  }
+
+  fileUpload.value.value = "";
+};
+
+const uploadFiles = async () => {
+  if (filesToUpload.value <= 0) return false;
+
+  function saveToServiceFiles(file) {
+    function binarySearch(fileObj) {
+        let low = 0;
+        directory.list.forEach((file) => {
+            if (file.type === "folder" && fileObj.type === "file") low++;
+        });
+        let high = directory.list.length - 1;
+        let mid = Math.floor((low + high) / 2);
+        let name = directory.list[mid]?.name;
+        if (!name) {
+            return 0;
+        }
+
+        while (low <= high) {
+            mid = Math.floor((low + high) / 2);
+            name = directory.list[mid].name;
+
+            if (name < fileObj.name && name[name.length - 1] !== "/") {
+            low = mid + 1;
+            } else if (name > fileObj.name && name[name.length - 1] !== "/") {
+            high = mid - 1;
+            } else {
+            return mid;
+            }
+        }
+
+        if (fileObj.name > name) {
+            return mid + 1;
+        } else if (fileObj.name < name) {
+            return mid;
+        }
+    }
+
+    let fileName = extractFileName(file.name);
+    let fileObj = {
+        name: fileName,
+        type: "file",
+        file: file,
+    };
+
+    let fileDirectoryTree = fileObj.file.name.split("/");
+    fileDirectoryTree.pop();
+    fileDirectoryTree = "/" + fileDirectoryTree.join("/");
+    if (props.currentDirectory !== "/") {
+        fileDirectoryTree += "/";
+    }
+    let directory =
+        service.value.files[service.value.subdomain + fileDirectoryTree];
+        console.log({
+            files: service.value.files,
+            directory: service.value.subdomain + fileDirectoryTree,
+        });
+    if (!directory) {
+        directory = service.value.files[
+            service.value.subdomain + fileDirectoryTree
+        ] = {
+            endOfList: false,
+            list: [],
+        };
+
+        let folderToCreate = service.value.subdomain + fileDirectoryTree;
+        folderToCreate = folderToCreate.replace(
+            service.value.subdomain + props.currentDirectory,
+            ""
+        );
+        let folderToCreateArray = folderToCreate.split("/");
+        if (folderToCreateArray.length === 1) {
+            console.log(folderToCreate);
+            let folderObj = {
+            name: folderToCreateArray[0] + "/",
+            type: "folder",
+            };
+            let index = binarySearch(folderObj);
+            console.log({ index });
+            let searchResult = service.value.files[
+            service.value.subdomain + props.currentDirectory
+            ].list.find((item) => item.name === folderObj.name);
+            if (!searchResult) {
+            service.value.files[
+                service.value.subdomain + props.currentDirectory
+            ].list.splice(index, 0, folderObj);
+            }
+        }
+        return false;
+    }
+
+    if (directory.endOfList) {
+        let index = binarySearch(fileObj);
+        if (directory.list[index]?.name === fileObj.name) {
+            directory.list[index] = fileObj;
+        } else {
+            if (directory.list[index].type === "folder") {
+            index++;
+            }
+            directory.list.splice(index, 0, fileObj);
+        }
+    } else {
+        let index = binarySearch(fileObj);
+        if (index < directory.list.length) {
+            if (directory.list[index]?.name === fileObj.name) {
+            directory.list[index] = fileObj;
+            } else {
+            directory.list.splice(index, 0, fileObj);
+            }
+        } else if (directory.list[index]?.name === fileObj.name) {
+            directory.list[index] = fileObj;
+        }
+    }
+  }
+  let formData = new FormData();
+
+  for (let key in fileList.value) {
+        formData.append(key, fileList.value[key].file, key);
+  }
+  isSaving.value = true;
+
+  let interval = null;
+  let progress = 0;
+  let testTimer = 0;
+  try {
+        state.blockingPromise = await skapi.uploadFiles(formData, {
+        service: service.value.service,
+        request: "host",
+        progress: (e) => {
+            if (abortUpload === e.currentFile.name && e.progress !== 100) {
+            e.abort();
+            fileList.value[e.currentFile.name].progress = false;
+            abortUpload = "";
+            } else {
+            if (e.failed.length > numberOfFailedUploads.value) {
+                numberOfFailedUploads.value++;
+                filesToUpload.value--;
+            }
+            progress = e.progress;
+            fileList.value[e.currentFile.name].abort = e.abort;
+            fileList.value[e.currentFile.name].progress = e.progress;
+            if (!fileList.value[e.currentFile.name].currentProgress)
+                fileList.value[e.currentFile.name].currentProgress = 0;
+            if (!interval) {
+                interval = setInterval(() => {
+                testTimer++;
+                try {
+                    if (
+                    fileList.value[e.currentFile.name].currentProgress < progress
+                    ) {
+                    fileList.value[e.currentFile.name].currentProgress += 1;
+                    }
+
+                    if (
+                    fileList.value[e.currentFile.name].currentProgress ===
+                    progress
+                    ) {
+                    filesToUpload.value--; // service.value.files[e.currentFile.name] = `https://${service.value.subdomain}.skapi.com/${e.currentFile.name}`
+                    saveToServiceFiles(e.currentFile);
+                    clearInterval(interval);
+                    interval = null;
+                    }
+                } catch (e) {
+                    throw e;
+                    clearInterval(interval);
+                }
+                }, 5);
+            }
+            }
+        },
+    });
+    } catch (e) {
+        console.log({ e });
+    } finally {
+        isSaving.value = false;
+        isComplete.value = true;
+    }
+};
+
+const getDirectory = (directory) => {
+  isFetching.value = true;
+
+  if (!directory && service.value.hasOwnProperty("files")) {
+    directoryFiles.value = service.value.files.list;
+    isEmpty.value = false;
+    return true;
+  } else if (!service.value.hasOwnProperty("files")) {
+    isEmpty.value = true;
+  }
+
+  function getCurrentDirectoryFiles(directory) {
+    let directoryFiles = service.value.files.list;
+    if (directory) {
+      for (let i = 1; i < directory.length; i++) {
+        directoryFiles = directoryFiles[`${directory[i]}/`].files.list;
+      }
+    }
+    return directoryFiles;
+  }
+
+  if (service.value?.files) {
+    let directoryCheck = service.value.files.list;
+    for (let i = 1; i < directory.length; i++) {
+      directoryCheck = Object.keys(
+        directoryCheck?.[`${directory[i]}/`]?.files.list
+      ).length
+        ? directoryCheck?.[`${directory[i]}/`]?.files.list
+        : null;
+    }
+    if (!directoryCheck) {
+      directoryFiles.value = {};
+    } else {
+      directoryFiles.value = getCurrentDirectoryFiles(directory);
+      console.log("File exists!", directoryCheck);
+      isFetching.value = false;
+      return true;
+    }
+  }
+
+  directoryFiles.value = {};
 
   let params = {
     service: service.value.service,
   };
 
   if (directory) {
-    params.dir = directory;
+    params.dir = `${directory.join("/")}/`;
   }
 
-  isFetching.value = true;
-
   skapi.listHostDirectory(params).then((files) => {
-    console.log(files);
     if (!service.value.hasOwnProperty("files")) {
-      service.value.files = {};
-      isEmpty.value = true;
-    } else {
-      isEmpty.value = false;
-    }
-    if (
-      !service.value.files[
-        `${service.value.subdomain}${currentDirectory.value}`
-      ]
-    ) {
-      service.value.files[
-        `${service.value.subdomain}${currentDirectory.value}`
-      ] = {
+      service.value.files = {
         endOfList: files.endOfList,
-        list: [],
+        list: {},
       };
     }
-
-    files.list.forEach((file) => {
-      let filename = extractFileName(file.name);
-
+    // console.log(Object.keys(service.value.files.list).length);
+    // console.log(files.list.length);
+    for (let file of files.list) {
+      //   console.log(file);
       if (files.list.length == 0) {
         isEmpty.value = true;
       } else {
         isEmpty.value = false;
       }
-
       if (file.type === "folder") {
-        service.value.files[
-          `${service.value.subdomain}${currentDirectory.value}`
-        ].list.push({
-          name: filename,
-          type: "folder",
-        });
-      } else {
-        service.value.files[
-          `${service.value.subdomain}${currentDirectory.value}`
-        ].list.push({
-          type: "file",
-          file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
-          name: filename,
-        });
-      }
-    });
+        let dir = file.name.substring(file.name.indexOf("/") + 1);
 
+        if (directory) {
+          let currentDirectory = service.value;
+          for (let i = 1; i < directory.length; i++) {
+            currentDirectory = currentDirectory.files.list[`${directory[i]}/`];
+          }
+          let folderName = dir.slice(0, -1).split("/");
+
+          currentDirectory.files.endOfList = files.endOfList;
+          currentDirectory.files.list[`${folderName[folderName.length - 1]}/`] =
+            {
+              type: "folder",
+              name: `${folderName[folderName.length - 1]}/`,
+              files: {
+                endOfList: false,
+                list: {},
+              },
+            };
+          directoryFiles.value = currentDirectory.files.list;
+        } else {
+          service.value.files.list[dir] = {
+            type: "folder",
+            name: dir,
+            files: {
+              endOfList: false,
+              list: {},
+            },
+          };
+          directoryFiles.value = service.value.files.list;
+        }
+      } else {
+        let name = file.name.substring(file.name.indexOf("/") + 1);
+        let subdomain = file.name.substring(0, file.name.indexOf("/"));
+        let url = `https://${subdomain}.skapi.com/${name}`;
+
+        console.log(name, subdomain, url);
+
+        if (directory) {
+          let currentDirectory = service.value;
+
+          for (let i = 1; i < directory.length; i++) {
+            currentDirectory = currentDirectory.files.list[`${directory[i]}/`];
+          }
+
+          currentDirectory.files.endOfList = files.endOfList;
+          let nameArr = name.split("/");
+          let fileName = nameArr[nameArr.length - 1];
+
+          currentDirectory.files.list[fileName] = {
+            type: "file",
+            name: name,
+            url,
+          };
+          directoryFiles.value = currentDirectory.files.list;
+        } else {
+          let nameArr = name.split("/");
+          let fileName = nameArr[nameArr.length - 1];
+
+          console.log(nameArr, fileName);
+
+          service.value.files.list[fileName] = {
+            type: "file",
+            name: name,
+            url,
+          };
+          directoryFiles.value = service.value.files.list;
+        }
+      }
+    }
     isFetching.value = false;
   });
 };
-
-const goUpDirectory = () => {
-  let directoryArray = [...currentDirectoryArray.value];
-  directoryArray.reverse();
-  directoryArray.pop();
-
-  let newDirectory = "/";
-
-  if (directoryArray.length) {
-    newDirectory = `/${directoryArray.join("/")}/`;
-    getDirectory(newDirectory);
-  } else {
-    getDirectory();
-  }
-
-  currentDirectory.value = newDirectory;
-};
-
-const deleteFiles = () => {
-  isDeleting.value = true;
-
-  skapi
-    .deleteHostFile({
-      keys: selectedFiles.value,
-      service: service.value.service,
-    })
-    .then((res) => {
-      selectedFiles.value.forEach((path) => {
-        const regex = /^.*?\//;
-        let result = path.replace(regex, "");
-        let pathArray = path.split("/");
-        let subdomain = pathArray[0];
-        let index;
-
-        if (result[result.length - 1] === "/") {
-          index = service.value.files[
-            `${subdomain}${currentDirectory.value}`
-          ].list.findIndex((path) => {
-            return path.name === pathArray[pathArray.length - 2] + "/";
-          });
-        } else {
-          index = service.value.files[
-            `${subdomain}${currentDirectory.value}`
-          ].list.findIndex((path) => {
-            return path.name === extractFileName(result);
-          });
-        }
-
-        service.value.files[
-          `${subdomain}${currentDirectory.value}`
-        ].list.splice(index, 1);
-
-        if (
-          service.value.files[`${subdomain}${currentDirectory.value}`].list
-            .length <= 0
-        ) {
-          let oldDirectory = currentDirectory.value;
-          let newDirectory = currentDirectory.value.split("/");
-          newDirectory.splice(-2);
-          currentDirectory.value = newDirectory.join("/") + "/";
-          let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
-          index = service.value.files[
-            `${subdomain}${currentDirectory.value}`
-          ].list.findIndex((path) => {
-            return path.name === folderToDelete;
-          });
-
-          service.value.files[
-            `${subdomain}${currentDirectory.value}`
-          ].list.splice(index, 1);
-        }
-      });
-      isDeleting.value = false;
-      selectedFiles.value = [];
-    });
-};
-
-const jumpto = (index) => {
-  getDirectory(
-    `/${currentDirectoryArray.value
-      .slice(index * -1)
-      .reverse()
-      .join("/")}/`
-  );
-};
-
-function extractFileName(file) {
-  const regex = /\/([^/]+)\/?$|([^/]+)$/;
-  const match = file.match(regex);
-
-  if (match && match.length > 0) {
-    return match[0].replace("/", "");
-  }
-
-  return null;
-}
 
 const checkboxHandler = (e) => {
   if (e.target.checked) {
@@ -539,6 +799,47 @@ const checkboxHandler = (e) => {
   }
 };
 
+const deleteFiles = () => {
+  isDeleting.value = true;
+  skapi
+    .deleteHostFile({
+      keys: selectedFiles.value,
+      service: service.value.service,
+    })
+    .then((res) => {
+      selectedFiles.value.forEach((path) => {
+        console.log({ path });
+        let dir = service.value.files.list;
+        let previousDir = service.value.files.list;
+        let newPathArr = path.split("/");
+        if (!newPathArr[newPathArr.length - 1]) {
+          newPathArr.pop();
+          newPathArr[newPathArr.length - 1] =
+            newPathArr[newPathArr.length - 1] + "/";
+        }
+        for (let i = 1; i < newPathArr.length - 1; i++) {
+          if (i > 1) {
+            previousDir = previousDir[newPathArr[i - 1] + "/"].files.list;
+          }
+          dir = dir[newPathArr[i] + "/"].files.list;
+        }
+        if (!dir[newPathArr[newPathArr.length - 1]]) {
+          console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]]);
+        }
+        console.log(newPathArr, dir, dir[newPathArr[newPathArr.length - 1]]);
+        console.log(newPathArr[newPathArr.length - 1]);
+        delete dir[newPathArr[newPathArr.length - 1]];
+        if (Object.keys(dir).length === 0) {
+          goUpDirectory();
+          dir = service.value.files.list;
+          delete previousDir[newPathArr[newPathArr.length - 2] + "/"];
+        }
+      });
+      isDeleting.value = false;
+      selectedFiles.value = [];
+    });
+};
+
 const currentDirectoryArray = computed(() => {
   selectedFiles.value = [];
   return currentDirectory.value
@@ -548,6 +849,12 @@ const currentDirectoryArray = computed(() => {
       return value;
     });
 });
+
+const jumpto = (index) => {
+  let localCurrentDirectory = currentDirectory.value;
+  let directory = [...localCurrentDirectory.split("/").filter((path) => path)];
+  goto(`/${directory.slice(0, index).join("/")}/`);
+};
 
 const deleteService = () => {
   isDisabled.value = true;

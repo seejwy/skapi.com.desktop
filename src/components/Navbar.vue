@@ -2,7 +2,7 @@
 sui-nav#topNav(auto-hide)
     .navAlign
         .title
-            img.logo(v-if="pageTitle === 'skapi'" alt="skapi" src="@/assets/img/logo.png" @click="()=>props.isParentLevel ? router.push('/') : null" width="90" height="35")
+            img.logo(v-if="pageTitle === 'skapi'" alt="skapi" src="@/assets/img/symbol-logo-white.svg" @click="()=>props.isParentLevel ? router.push('/') : null" width="90" height="35")
             span.titleText(v-else:class="{clickable: props.isParentLevel}" @click="()=>props.isParentLevel ? router.push('/') : gotoService()" v-html="pageTitle || ''")
         .menu
             div

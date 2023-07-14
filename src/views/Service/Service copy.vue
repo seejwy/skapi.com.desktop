@@ -116,16 +116,19 @@ template(v-else)
                     .actions(@click="deleteFiles" :class="{'active': service?.files?.list}")
                         Icon trash
                         span Delete
+                //- sui-button.withIcon(@click="deleteFiles")
+                //-     Icon trash
+                //-     span Delete
+            .directoryName
+                Icon(@click="goUpDirectory") upload
+                .pathWrapper
+                    span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
+                        span {{ folder }}/
+                    span /
             .filesContainer
-                .fetching(v-if="isFetching" style="text-align:center;")
+                .fetching(v-if="isFetching")
                     Icon.animationRotation refresh
-                template(v-else-if="service?.files")
-                    .directoryName
-                        Icon(@click="goUpDirectory") upload
-                        .pathWrapper
-                            span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
-                                span {{ folder }}/
-                            span /
+                template(v-if="service?.files")
                     template(v-for="(file, name) in directoryFiles")
                         .fileWrapper(v-if="file.type === 'folder'")
                             .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
@@ -143,7 +146,7 @@ template(v-else)
                     //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
                     //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
                     //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
-                template(v-else-if="isEmpty")
+                template(v-else)
                     div.noFiles
                         div.title No Files
                         p You have not uploaded any files
@@ -225,8 +228,6 @@ const isEdit = ref(false);
 const isCreate = ref(false);
 const isUpload = ref(false);
 const isDisabled = ref(false);
-const isFetching = ref(false);
-const isEmpty = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
 
@@ -370,53 +371,6 @@ const goUpDirectory = () => {
     }
 }
 
-const onDrop = (event) => {
-    const readEntriesAsync = (item) => {
-        let reader = item.createReader();
-        reader.readEntries((contents) => {
-            for (let content of contents) {
-                if (content.isDirectory) {
-                    readEntriesAsync(content)
-                } else {
-                    getFileAsync(content, content.fullPath)
-                }
-            }
-        })
-    }
-
-    const getFileAsync = (item, path) => {
-        console.log(item, path);
-
-        item.file((file) => {
-            if (path) {
-                fileList.value[path?.substring(1)] = {
-                    file,
-                    progress: 0
-                };
-            } else {
-                // fileList[f.name] = file;
-                fileList.value[file.name] = {
-                    file,
-                    progress: 0
-                };
-            }
-            filesToUpload.value++;
-        });
-    }
-
-    let items = event.dataTransfer.items;
-    event.preventDefault();
-
-    for (let item of items) {
-        let content = item.webkitGetAsEntry();
-        if (content.isDirectory) {
-            readEntriesAsync(content);
-        } else {
-            getFileAsync(content);
-        }
-    }
-}
-
 const addFolders = (event) => {
     if (isComplete.value) {
         console.log({ isComplete: isComplete.value })
@@ -508,8 +462,6 @@ const uploadFiles = async () => {
 }
 
 const getDirectory = (directory) => {
-    isFetching.value = true;
-
     if (!directory && service.value.hasOwnProperty('files')) {
         directoryFiles.value = service.value.files.list;
         return true;
@@ -534,8 +486,7 @@ const getDirectory = (directory) => {
             directoryFiles.value = {};
         } else {
             directoryFiles.value = getCurrentDirectoryFiles(directory);
-            console.log("File exists!", directoryCheck);
-            isFetching.value = false;
+            console.log("File exists!", directoryCheck)
             return true;
         }
     }
@@ -556,11 +507,9 @@ const getDirectory = (directory) => {
                 endOfList: files.endOfList,
                 list: {}
             }
-            console.log(service.value.files)
         }
-        console.log(files.list);
+        // console.log(files);
         for (let file of files.list) {
-            console.log(file);
             if (file.type === 'folder') {
                 let dir = file.name.substring(file.name.indexOf("/") + 1);
 
@@ -590,18 +539,15 @@ const getDirectory = (directory) => {
                             list: {}
                         }
                     }
-                    directoryFiles.value = service.value.files.list;
+                    directoryFiles.value = service.value.files.list
                 }
             } else {
                 let name = file.name.substring(file.name.indexOf("/") + 1);
                 let subdomain = file.name.substring(0, file.name.indexOf("/"));
                 let url = `https://${subdomain}.skapi.com/${name}`
 
-                console.log(name, subdomain, url)
-
                 if (directory) {
                     let currentDirectory = service.value;
-
                     for (let i = 1; i < directory.length; i++) {
                         currentDirectory = currentDirectory.files.list[`${directory[i]}/`]
                     }
@@ -614,25 +560,83 @@ const getDirectory = (directory) => {
                         type: 'file',
                         name: name,
                         url,
+
                     };
                     directoryFiles.value = currentDirectory.files.list;
                 } else {
                     let nameArr = name.split('/');
                     let fileName = nameArr[nameArr.length - 1]
 
-                    console.log(nameArr, fileName)
-
                     service.value.files.list[fileName] = {
                         type: 'file',
                         name: name,
                         url,
+
                     };
-                    directoryFiles.value = service.value.files.list;
                 }
             }
         }
-        isFetching.value = false;
     });
+}
+getDirectory();
+
+// if('subdomain' in service.value) {
+//     if (service.value.subdomain.includes('*')) {
+//         domain.value = false;
+//         deleting.value = true;
+//     } else {
+//         deleting.value = false;
+//         getDirectory();
+//     }
+// }
+
+console.log('subdomain' in service.value)
+
+const onDrop = (event) => {
+    const readEntriesAsync = (item) => {
+        let reader = item.createReader();
+        reader.readEntries((contents) => {
+            for (let content of contents) {
+                if (content.isDirectory) {
+                    readEntriesAsync(content)
+                } else {
+                    getFileAsync(content, content.fullPath)
+                }
+            }
+        })
+    }
+
+    const getFileAsync = (item, path) => {
+        console.log(item, path);
+
+        item.file((file) => {
+            if (path) {
+                fileList.value[path?.substring(1)] = {
+                    file,
+                    progress: 0
+                };
+            } else {
+                // fileList[f.name] = file;
+                fileList.value[file.name] = {
+                    file,
+                    progress: 0
+                };
+            }
+            filesToUpload.value++;
+        });
+    }
+
+    let items = event.dataTransfer.items;
+    event.preventDefault();
+
+    for (let item of items) {
+        let content = item.webkitGetAsEntry();
+        if (content.isDirectory) {
+            readEntriesAsync(content);
+        } else {
+            getFileAsync(content);
+        }
+    }
 }
 
 const checkboxHandler = (e) => {
@@ -642,6 +646,7 @@ const checkboxHandler = (e) => {
         selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`), 1);
     }
 }
+
 
 const deleteFiles = () => {
     isDeleting.value = true;
@@ -802,7 +807,6 @@ watch(() => service.value.subdomain, () => {
         } else {
             domain.value = true;
             deleting.value = false;
-            getDirectory();
         }
     } else {
         domain.value = false;
@@ -811,33 +815,20 @@ watch(() => service.value.subdomain, () => {
 });
 
 onBeforeMount(() => {
-    if ('subdomain' in service.value) {
+    if (service.value.subdomain) {
+        domain.value = true;
+
         if (service.value.subdomain.includes('*')) {
             domain.value = false;
             deleting.value = true;
         } else {
-            domain.value = true;
             deleting.value = false;
-            getDirectory();
         }
     } else {
         domain.value = false;
-        deleting.value = false;
     }
-    // if (service.value.subdomain) {
-    //     domain.value = true;
-
-    //     if (service.value.subdomain.includes('*')) {
-    //         domain.value = false;
-    //         deleting.value = true;
-    //     } else {
-    //         deleting.value = false;
-    //     }
-    // } else {
-    //     domain.value = false;
-    // }
 })
-// console.log(service.value.subdomain, service.value.service)
+console.log(service.value.subdomain, service.value.service)
 </script>
 
 <style lang="less" scoped>
@@ -1139,11 +1130,7 @@ onBeforeMount(() => {
 .directoryName {
     display: flex;
     align-items: center;
-    padding: 20px;
-    margin-bottom: 40px;
-
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
+    margin: 28px 0px 10px;
 
     svg {
         margin-right: 16px;
@@ -1171,9 +1158,9 @@ onBeforeMount(() => {
 }
 
 .filesContainer {
-    .fileWrapper {
-        border-radius: 8px;
+    margin: 10px -20px 0;
 
+    .fileWrapper {
         &:nth-child(even) {
             background: #4a4a4a;
         }
@@ -1231,10 +1218,6 @@ onBeforeMount(() => {
         &>sui-input,
         &>svg {
             margin-right: 16px;
-        }
-
-        &>sui-input {
-            opacity: 0.5;
         }
     }
 

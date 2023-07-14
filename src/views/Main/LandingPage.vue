@@ -10,6 +10,7 @@ section#section.intro
             span Get Started
             img.arrowImg(src="@/assets/img/icons/arrow_right.svg")
         img.mainImg(src="@/assets/img/icons/main illu.svg")
+        img.mainImgMobile(src="@/assets/img/icons/main illu_mobile.svg")
 
 section#section.video
     .container 
@@ -182,8 +183,11 @@ main {
                 .mainImg {
                     position: absolute;
                     right: -80px;
-                    bottom: 0px;
+                    bottom: 50px;
                     width: 1280px;
+                }
+                .mainImgMobile {
+                    display: none;
                 }
                 span {
                     font-size: 24px;
@@ -471,7 +475,7 @@ main {
             }
 
             &.intro {
-                margin: 50px 0 120px 0;
+                margin: 50px 0 20px 0;
 
                 .container {
                     .mainImg {
@@ -500,11 +504,17 @@ main {
 
             &.intro {
                 .container {
+                    width: auto;
                     p {
                         font-size: 3.2vw;
                     }
                     a {
                         font-size: 2.4vw;
+                    }
+                    .mainImg {
+                        width: 127vw;
+                        right: auto;
+                        transform: translate(-20px);
                     }
                 }
             }
@@ -732,7 +742,7 @@ main {
             }
 
             &.intro {
-                height: auto;
+                height: 560px;
 
                 .container {
                     width: 100%;
@@ -756,10 +766,16 @@ main {
                     }
                     p {
                         font-size: 20px;
-                        // display: block;
                     }
                     .mainImg {
                         display: none;
+                    }
+                    .mainImgMobile {
+                        display: block;
+                        position: absolute;
+                        width: 160vw;
+                        min-width: 700px;
+                        transform: translate(-100px, -50px);
                     }
                 }
             }

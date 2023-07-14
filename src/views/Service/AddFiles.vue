@@ -210,7 +210,8 @@ const uploadFiles = async () => {
 }
 
 .filesContainer {
-    // margin: 28px -20px;
+    max-height: 300px;
+    overflow: scroll;
     margin: 28px 0px;
 
     .file {

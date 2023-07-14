@@ -742,7 +742,8 @@ main {
             }
 
             &.intro {
-                height: 560px;
+                // height: 560px;
+                margin-bottom: 0;
 
                 .container {
                     width: 100%;

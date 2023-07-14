@@ -10,6 +10,7 @@ template(v-else)
         div.action
             a(href="https://docs.skapi.com/the-basics/#connecting-to-your-service" target="_blank")
                 sui-button.lineButton(type="button") Find out More
+    // service information
     .container
         .innerContainer 
             .titleActionsWrapper
@@ -24,7 +25,7 @@ template(v-else)
                     .name {{ info.name }}
                     .value(v-if="info.filter") {{ info.filter(service[info.key]) }}
                     .value(v-else) {{ service[info.key] }}
-
+    // service setting
     .container
         .innerContainer 
             .titleActionsWrapper
@@ -46,7 +47,7 @@ template(v-else)
                         span(v-if="service[setting.key] > 0") Enabled 
                         span(v-else) Disabled
                     .value(v-else) {{  service[setting.key] || '-' }}
-
+    // user & record
     .container
         .innerContainer.services
             .titleActionsWrapper
@@ -74,7 +75,7 @@ template(v-else)
                             span Email System
                         .body Users are data that your service user's will store and read from your service database. 
                     .goto Go to Mail >
-
+    // subdomain setting
     .container 
         .innerContainer 
             .titleActionsWrapper(v-if="!service.subdomain" style="margin-bottom: 0;")
@@ -102,7 +103,7 @@ template(v-else)
             .domainGrid.deleting(v-else-if="deleting") 
                 h3 Deleting subdomain ...
                 span It may take a few minutes for a subdomain to be deleted.
-
+    // uploaded list
     .container(v-if="domain")
         .innerContainer    
             .titleActionsWrapper
@@ -113,13 +114,13 @@ template(v-else)
                     .actions(@click="upload")
                         Icon pencil
                         span Upload
-                    .actions(@click="deleteFiles" :class="{'active': service?.files?.list}")
+                    .actions(@click="deleteFiles" :class="{'active': !isEmpty}")
                         Icon trash
                         span Delete
             .filesContainer
                 .fetching(v-if="isFetching" style="text-align:center;")
                     Icon.animationRotation refresh
-                template(v-else-if="service?.files")
+                template(v-else-if="service?.files && !isEmpty")
                     .directoryName
                         Icon(@click="goUpDirectory") upload
                         .pathWrapper
@@ -148,7 +149,7 @@ template(v-else)
                     div.noFiles
                         div.title No Files
                         p You have not uploaded any files
-
+    // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
         div.overlay
             EditService(@close="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
@@ -160,7 +161,7 @@ template(v-else)
     sui-overlay(v-if="isUpload" ref="uploadWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
         div.overlay
             AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
-
+// delete window
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
         .title
@@ -513,7 +514,10 @@ const getDirectory = (directory) => {
 
     if (!directory && service.value.hasOwnProperty('files')) {
         directoryFiles.value = service.value.files.list;
+        isEmpty.value = false;
         return true;
+    } else if (!service.value.hasOwnProperty("files")) {
+        isEmpty.value = true;
     }
 
     function getCurrentDirectoryFiles(directory) {
@@ -557,11 +561,16 @@ const getDirectory = (directory) => {
                 endOfList: files.endOfList,
                 list: {}
             }
-            console.log(service.value.files)
         }
-        console.log(files.list);
+        // console.log(Object.keys(service.value.files.list).length);
+        // console.log(files.list.length);
         for (let file of files.list) {
-            console.log(file);
+            //   console.log(file);
+            if (files.list.length == 0) {
+                isEmpty.value = true;
+            } else {
+                isEmpty.value = false;
+            }
             if (file.type === 'folder') {
                 let dir = file.name.substring(file.name.indexOf("/") + 1);
 

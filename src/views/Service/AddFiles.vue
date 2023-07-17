@@ -1,6 +1,6 @@
 <template lang="pug">
 .overlayContainer(:loading="isDisabled || null")
-    .actions    
+    .uploadBtn
         sui-button.lineButton(@click="addFileButtonHandler" :disabled="isSaving")  + Files
         sui-button.lineButton(@click="addFolderButtonHandler" :disabled="isSaving")  + Folders
         .delete(@click="deleteFiles" :disabled="!isSaving || !selectedFiles?.length")
@@ -37,7 +37,7 @@
             div.noFiles
                 div.title No Files
                 p You have not uploaded any files
-    .actions
+    .uploadBtn
         sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
         sui-button(:disabled="!Object.keys(fileList).length" @click="uploadFiles") Upload
 </template>
@@ -237,7 +237,7 @@ const uploadFiles = async () => {
 
     if (directory.endOfList) {
       let index = binarySearch(fileObj);
-      console.log(directory.list[index])
+      console.log(directory.list[index]);
       if (directory.list[index]?.name === fileObj.name) {
         directory.list[index] = fileObj;
       } else {
@@ -380,14 +380,17 @@ const onDrop = (event) => {
 
 <style lang="less" scoped>
 .overlayContainer {
+  display: flex;
+  flex-wrap: wrap;
   background-color: #505050;
   border: 1px solid #808080;
   box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.25);
   color: #fff;
   text-align: center;
   padding: 40px;
-  width: 500px;
-  max-width: 100%;
+  //   width: 500px;
+  //   max-width: 100%;
+  max-width: 800px;
   border-radius: 8px;
   .input {
     margin: 20px auto;
@@ -406,7 +409,8 @@ const onDrop = (event) => {
   }
 }
 
-.actions {
+.uploadBtn {
+  width: 100%;
   text-align: right;
 
   sui-button {
@@ -425,7 +429,56 @@ const onDrop = (event) => {
   }
 }
 
+.fileUploadArea {
+    width: 49%;
+    margin-right: 2%;
+    padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #ffffff;
+  border-radius: 8px;
+
+  sui-button {
+    vertical-align: middle;
+  }
+
+  &:only-child {
+    margin-bottom: 0;
+  }
+
+  & > div > * {
+    display: inline-block;
+
+    &:nth-child(2) {
+      margin-top: 20px;
+    }
+  }
+
+  svg {
+    height: 57px;
+    width: 57px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .error {
+    color: #ff8d3b;
+
+    svg {
+      height: 24px;
+      width: 24px;
+      fill: #ff8d3b;
+    }
+  }
+
+  label {
+    display: none;
+  }
+}
+
 .filesContainer {
+    width: 49%;
   max-height: 300px;
   overflow: scroll;
   margin: 28px 0px;
@@ -581,52 +634,7 @@ const onDrop = (event) => {
   }
 }
 
-.fileUploadArea {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 28px;
-    border: 1px dashed #FFFFFF;
-    border-radius: 8px;
-    height: 100px;
 
-    sui-button {
-        vertical-align: middle;
-    }
-
-    &:only-child {
-        margin-bottom: 0;
-    }
-
-    &>div>* {
-        display: inline-block;
-
-        &:first-child {
-            margin-right: 6px;
-        }
-
-        &:last-child {
-            margin-left: 6px;
-        }
-    }
-
-    svg {
-        height: 57px;
-        width: 57px;
-        color: rgba(255, 255, 255, .6);
-    }
-
-    .error {
-        color: #FF8D3B;
-
-        svg {
-            height: 24px;
-            width: 24px;
-             fill: #FF8D3B;
-        }
-    }
-}
 
 .pageAction {
   position: fixed;

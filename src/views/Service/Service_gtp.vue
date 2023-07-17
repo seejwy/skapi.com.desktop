@@ -75,21 +75,6 @@ template(v-else)
                             span Email System
                         .body Users are data that your service user's will store and read from your service database. 
                     .goto Go to Mail >
-    // email_triggers
-    .container 
-        .innerContainer 
-            .titleActionsWrapper
-                .titleWrapper
-                    Icon setting
-                    h2 Email Triggers
-            .emailGrid
-                .emailGridItem(v-for="(email, name) in emailGrid")
-                    .name
-                        span {{ name }}
-                    .value
-                        span {{ email }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
-                        Icon copy                    
     // subdomain setting
     .container 
         .innerContainer 
@@ -160,10 +145,10 @@ template(v-else)
                                     Icon file
                                     a(:href="`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`" download).path-wrapper
                                         span.path {{ file.name }}
-                    //- .paginator(style="text-align:center")
-                    //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
-                    //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
-                    //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
+                    .paginator(style="text-align:center")
+                        Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
+                        span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
+                        Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
 
     // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
@@ -259,8 +244,11 @@ const numberOfFailedUploads = ref(-1);
 const currentDirectory = ref("/");
 let abortUpload = "";
 const selectedFiles = ref([]);
-
 const isDeleting = ref(false);
+
+const currentPage = ref(1); // 현재 페이지 번호
+const itemsPerPage = 10; // 페이지당 아이템 수
+const maxVisiblePages = 5; // 표시할 최대 페이지 숫자
 
 const informationGrid = reactive([
   {
@@ -337,8 +325,6 @@ const settingGrid = reactive([
   },
 ]);
 
-const emailGrid = computed(() => {return service.value.email_triggers.template_setters});
-
 const edit = () => {
   if (!state.user.email_verified) return false;
   isEdit.value = true;
@@ -353,18 +339,6 @@ const upload = () => {
   if (!state.user.email_verified) return false;
   isUpload.value = true;
 };
-
-const copy = (e) => {
-    let doc = document.createElement('textarea');
-    
-    doc.textContent = e.target.parentNode.parentNode.previousElementSibling.childNodes[0].innerText;
-    document.body.append(doc);
-    doc.select();
-    document.execCommand('copy');
-    doc.remove();
-
-    alert('The code has been copied.');
-}
 
 const deleteServiceAsk = () => {
   if (!state.user.email_verified) return;
@@ -405,6 +379,22 @@ const getDirectory = (directory) => {
     params.dir = directory;
   }
 
+  function prevPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  }
+
+  function nextPage() {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++;
+    }
+  }
+
+  function gotoPage(page) {
+    currentPage.value = page;
+  }
+
   isFetching.value = true;
 
   skapi.listHostDirectory(params).then((files) => {
@@ -435,6 +425,34 @@ const getDirectory = (directory) => {
         isEmpty.value = true;
       } else {
         isEmpty.value = false;
+        const totalPages = computed(() => Math.ceil(files.list.length / itemsPerPage));
+        const displayedFiles = computed(() => {
+          const startIndex = (currentPage.value - 1) * itemsPerPage;
+          const endIndex = startIndex + itemsPerPage;
+          return files.list.slice(startIndex, endIndex);
+        });
+        const visiblePages = computed(() => {
+          const total = totalPages.value;
+          const current = currentPage.value;
+          const middle = Math.floor(maxVisiblePages / 2);
+          let start, end;
+
+          if (total <= maxVisiblePages) {
+            start = 1;
+            end = total;
+          } else if (current <= middle) {
+            start = 1;
+            end = maxVisiblePages;
+          } else if (current >= total - middle) {
+            start = total - maxVisiblePages + 1;
+            end = total;
+          } else {
+            start = current - middle;
+            end = current + middle;
+          }
+
+          return Array(end - start + 1).fill().map((_, index) => start + index);
+        });
       }
 
       if (file.type === "folder") {
@@ -944,22 +962,8 @@ onBeforeMount(() => {
     color: rgba(255, 255, 255, 0.4);
   }
 }
-.emailGrid {
-    &Item {
-        &:last-child {
-            margin-bottom: 0;
-        }
-        margin-bottom: 20px;
-    }
-    .actions {
-        position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translate(0, -50%);
-    }
-}
 
-.domainGrid, .emailGrid {
+.domainGrid {
   &.deleting {
     text-align: center;
     color: rgba(255, 255, 255, 0.4);

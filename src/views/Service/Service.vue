@@ -47,37 +47,6 @@ template(v-else)
                         span(v-if="service[setting.key] > 0") Enabled 
                         span(v-else) Disabled
                     .value(v-else) {{  service[setting.key] || '-' }}
-
-    // email_triggers
-    .container 
-        .innerContainer 
-            .titleActionsWrapper
-                .titleWrapper
-                    Icon setting
-                    h2 Email Triggers
-            .emailGrid
-                .emailGridItem(v-for="(email, name) in emailGrid")
-                    .name
-                        span {{ name }}
-                    .value
-                        span {{ email }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
-                        Icon copy   
-                .emailGridItem
-                    .name
-                        span newsletter_group0
-                    .value
-                        span {{ skapi.requestNewsletterSender(service.service, 0).then((e) => {console.log(e);}) }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
-                        Icon copy 
-                .emailGridItem
-                    .name
-                        span newsletter_group1
-                    .value
-                        span {{ email }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
-                        Icon copy 
-
     // user & record
     .container
         .innerContainer.services
@@ -106,7 +75,21 @@ template(v-else)
                             span Email System
                         .body Users are data that your service user's will store and read from your service database. 
                     .goto Go to Mail >
-                 
+    // email_triggers
+    .container 
+        .innerContainer 
+            .titleActionsWrapper
+                .titleWrapper
+                    Icon setting
+                    h2 Email Triggers
+            .emailGrid
+                .emailGridItem(v-for="(email, name) in emailGrid")
+                    .name
+                        span {{ name }}
+                    .value
+                        span {{ email }}
+                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
+                        Icon copy                    
     // subdomain setting
     .container 
         .innerContainer 
@@ -152,8 +135,6 @@ template(v-else)
             .filesContainer
                 .fetching(v-if="isFetching" style="text-align:center;")
                     Icon.animationRotation refresh
-                //- .fetching(v-if='isFetching' v-for="t in numberOfSkeletons()" style="background: #656565; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; margin-top: 16px;")
-                //-     span &nbsp;
                 template(v-else-if="isEmpty")
                     div.noFiles
                         div.title No Files
@@ -165,7 +146,7 @@ template(v-else)
                             span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
                                 span {{ folder }}/
                             span /
-                    .directoryFiles(@scroll="moreDirecFile")
+                    .directoryFiles
                         template(v-for="(file) in service?.files[service.subdomain+currentDirectory].list")
                             .fileWrapper(v-if="!file.file")
                                 .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
@@ -183,10 +164,6 @@ template(v-else)
                     //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
                     //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
                     //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
-                                .paginator
-                                Icon.arrow(
-                        :class="{active: currentSelectedTableBatch || currentSelectedTablePage}"
-                        @click="()=>{ if(currentSelectedTablePage) currentSelectedTablePage--; else if(currentSelectedTableBatch) { currentSelectedTablePage = numberOfPagePerBatch - 1; currentSelectedTableBatch--; } }") left
 
     // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
@@ -236,7 +213,7 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onMounted, onUnmounted } from "vue";
+import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed } from "vue";
 import { state, skapi } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
@@ -389,10 +366,6 @@ const copy = (e) => {
     alert('The code has been copied.');
 }
 
-const moreDirecFile = () => {
-
-}
-
 const deleteServiceAsk = () => {
   if (!state.user.email_verified) return;
   deleteConfirmOverlay.value.open();
@@ -428,17 +401,13 @@ const getDirectory = (directory) => {
     service: service.value.service,
   };
 
-  let fetchOptions = {
-    fetchMore: true,
-  }
-
   if (directory) {
     params.dir = directory;
   }
 
   isFetching.value = true;
 
-  skapi.listHostDirectory(params, fetchOptions).then((files) => {
+  skapi.listHostDirectory(params).then((files) => {
     console.log(files);
     if (!service.value.hasOwnProperty("files")) {
       service.value.files = {};
@@ -459,14 +428,14 @@ const getDirectory = (directory) => {
       };
     }
 
-    if (files.list.length == 0) {
-        isEmpty.value = true;
-    } else {
-        isEmpty.value = false;
-    }
-
     files.list.forEach((file) => {
       let filename = extractFileName(file.name);
+
+      if (files.list.length == 0) {
+        isEmpty.value = true;
+      } else {
+        isEmpty.value = false;
+      }
 
       if (file.type === "folder") {
         service.value.files[
@@ -516,54 +485,53 @@ const deleteFiles = () => {
       service: service.value.service,
     })
     .then((res) => {
-        selectedFiles.value.forEach((path) => {
-            const regex = /^.*?\//;
-            let result = path.replace(regex, "");
-            let pathArray = path.split("/");
-            let subdomain = pathArray[0];
-            let index;
+      selectedFiles.value.forEach((path) => {
+        const regex = /^.*?\//;
+        let result = path.replace(regex, "");
+        let pathArray = path.split("/");
+        let subdomain = pathArray[0];
+        let index;
 
-            if (result[result.length - 1] === "/") {
-            index = service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.findIndex((path) => {
-                return path.name === pathArray[pathArray.length - 2] + "/";
-            });
-            } else {
-            index = service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.findIndex((path) => {
-                return path.name === extractFileName(result);
-            });
-            }
-
-            service.value.files[
+        if (result[result.length - 1] === "/") {
+          index = service.value.files[
             `${subdomain}${currentDirectory.value}`
-            ].list.splice(index, 1);
+          ].list.findIndex((path) => {
+            return path.name === pathArray[pathArray.length - 2] + "/";
+          });
+        } else {
+          index = service.value.files[
+            `${subdomain}${currentDirectory.value}`
+          ].list.findIndex((path) => {
+            return path.name === extractFileName(result);
+          });
+        }
 
-            if (
-            service.value.files[`${subdomain}${currentDirectory.value}`].list
-                .length <= 0
-            ) {
-            let oldDirectory = currentDirectory.value;
-            let newDirectory = currentDirectory.value.split("/");
-            newDirectory.splice(-2);
-            currentDirectory.value = newDirectory.join("/") + "/";
-            let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
-            index = service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.findIndex((path) => {
-                return path.name === folderToDelete;
-            });
+        service.value.files[
+          `${subdomain}${currentDirectory.value}`
+        ].list.splice(index, 1);
 
-            service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.splice(index, 1);
-            }
-        });
+        if (
+          service.value.files[`${subdomain}${currentDirectory.value}`].list
+            .length <= 0
+        ) {
+          let oldDirectory = currentDirectory.value;
+          let newDirectory = currentDirectory.value.split("/");
+          newDirectory.splice(-2);
+          currentDirectory.value = newDirectory.join("/") + "/";
+          let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
+          index = service.value.files[
+            `${subdomain}${currentDirectory.value}`
+          ].list.findIndex((path) => {
+            return path.name === folderToDelete;
+          });
 
-        isDeleting.value = false;
-        selectedFiles.value = [];
+          service.value.files[
+            `${subdomain}${currentDirectory.value}`
+          ].list.splice(index, 1);
+        }
+      });
+      isDeleting.value = false;
+      selectedFiles.value = [];
     });
 };
 
@@ -773,18 +741,6 @@ onBeforeMount(() => {
   // }
 });
 // console.log(service.value.subdomain, service.value.service)
-
-// onMounted(() => {
-//   // 페이지 로드 시 초기 데이터를 가져오는 메서드 호출
-//   loadMore();
-//   // 스크롤 이벤트 감지
-//   window.addEventListener('scroll', handleScroll);
-// });
-
-// onUnmounted(() => {
-//   // 컴포넌트가 파괴될 때 스크롤 이벤트 리스너 제거
-//   window.removeEventListener('scroll', handleScroll);
-// });
 </script>
 
 <style lang="less" scoped>

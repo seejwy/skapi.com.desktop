@@ -67,14 +67,14 @@ template(v-else)
                     .name
                         span newsletter_group0
                     .value
-                        span sss
+                        span {{ skapi.requestNewsletterSender(service.service, 0) }}
                     .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
                         Icon copy 
                 .emailGridItem
                     .name
                         span newsletter_group1
                     .value
-                        span ddddd
+                        span {{ skapi.requestNewsletterSender(service.service, 1) }}
                     .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
                         Icon copy 
 
@@ -165,7 +165,7 @@ template(v-else)
                             span.path(v-for="(folder, index) in currentDirectoryArray" @click="jumpto(currentDirectoryArray.length - index)")
                                 span {{ folder }}/
                             span /
-                    .directoryFiles(@scroll="moreDirecFile")
+                    .directoryFiles(@scroll="scrollEvent")
                         template(v-for="(file) in service?.files[service.subdomain+currentDirectory].list")
                             .fileWrapper(v-if="!file.file")
                                 .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
@@ -236,7 +236,7 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onMounted, onUnmounted } from "vue";
+import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onBeforeUnmount } from "vue";
 import { state, skapi } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
@@ -393,10 +393,6 @@ const copy = (e) => {
     alert('The code has been copied.');
 }
 
-const moreDirecFile = () => {
-
-}
-
 const deleteServiceAsk = () => {
     if (!state.user.email_verified) return;
     deleteConfirmOverlay.value.open();
@@ -421,76 +417,71 @@ const goto = (name) => {
     getDirectory(name.slice(0, -1).split("/"));
 };
 
-const getDirectory = (directory) => {
-    let findingDirectory =
-    service.value.subdomain + (directory ? directory : "/");
+const getDirectory = (directory = '/') => {
+    let findingDirectory = service.value.subdomain + (directory ? directory : "/");
     if (service.value.files?.[findingDirectory]) {
-    return service.value.files[findingDirectory];
+        return service.value.files[findingDirectory];
     }
 
     let params = {
-    service: service.value.service,
+        service: service.value.service,
     };
 
-    let fetchOptions = {
-    fetchMore: true,
-    }
-
     if (directory) {
-    params.dir = directory;
+        params.dir = directory;
     }
 
     isFetching.value = true;
 
-    skapi.listHostDirectory(params, fetchOptions).then((files) => {
-    console.log(files);
-    if (!service.value.hasOwnProperty("files")) {
-        service.value.files = {};
-        isEmpty.value = true;
-    } else {
-        isEmpty.value = false;
-    }
-    if (
-        !service.value.files[
-        `${service.value.subdomain}${currentDirectory.value}`
-        ]
-    ) {
-        service.value.files[
-        `${service.value.subdomain}${currentDirectory.value}`
-        ] = {
-        endOfList: files.endOfList,
-        list: [],
-        };
-    }
-
-    if (files.list.length == 0) {
-        isEmpty.value = true;
-    } else {
-        isEmpty.value = false;
-    }
-
-    files.list.forEach((file) => {
-        let filename = extractFileName(file.name);
-
-        if (file.type === "folder") {
-        service.value.files[
-            `${service.value.subdomain}${currentDirectory.value}`
-        ].list.push({
-            name: filename,
-            type: "folder",
-        });
+    skapi.listHostDirectory(params).then((files) => {
+        console.log(files);
+        if (!service.value.hasOwnProperty("files")) {
+            service.value.files = {};
+            isEmpty.value = true;
         } else {
-        service.value.files[
-            `${service.value.subdomain}${currentDirectory.value}`
-        ].list.push({
-            type: "file",
-            file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
-            name: filename,
-        });
+            isEmpty.value = false;
         }
-    });
+        if (
+            !service.value.files[
+            `${service.value.subdomain}${currentDirectory.value}`
+            ]
+        ) {
+            service.value.files[
+            `${service.value.subdomain}${currentDirectory.value}`
+            ] = {
+            endOfList: files.endOfList,
+            list: [],
+            };
+        }
 
-    isFetching.value = false;
+        if (files.list.length == 0) {
+            isEmpty.value = true;
+        } else {
+            isEmpty.value = false;
+        }
+
+        files.list.forEach((file) => {
+            let filename = extractFileName(file.name);
+
+            if (file.type === "folder") {
+                service.value.files[
+                    `${service.value.subdomain}${currentDirectory.value}`
+                ].list.push({
+                    name: filename,
+                    type: "folder",
+                });
+                } else {
+                service.value.files[
+                    `${service.value.subdomain}${currentDirectory.value}`
+                ].list.push({
+                    type: "file",
+                    file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
+                    name: filename,
+                });
+            }
+        });
+
+        isFetching.value = false;
     });
 };
 
@@ -681,9 +672,58 @@ const deleteSubdomain = async () => {
     }
 };
 
+const getMoreDirectory = (directory) => {
+    let params = {
+        service: service.value.service,
+    };
+
+    let fetchOptions = {
+        fetchMore: true,
+    }
+
+    if (directory) {
+        params.dir = directory;
+    }
+
+    isFetching.value = true;
+
+    skapi.listHostDirectory(params, fetchOptions).then((files) => {
+        files.list.forEach((file) => {
+            let filename = extractFileName(file.name);
+
+            if (file.type === "folder") {
+                service.value.files[
+                    `${service.value.subdomain}${currentDirectory.value}`
+                ].list.push({
+                    name: filename,
+                    type: "folder",
+                });
+            } else {
+                service.value.files[
+                    `${service.value.subdomain}${currentDirectory.value}`
+                ].list.push({
+                    type: "file",
+                    file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
+                    name: filename,
+                });
+            }
+        });
+
+        isFetching.value = false;
+    });
+};
+
+const scrollEvent = (e) => {
+    const container = e.target;
+    const scrollPosition = container.scrollHeight - container.clientHeight;
+    if (scrollPosition <= container.scrollTop + 50) {
+        getMoreDirectory(currentDirectory.value);
+    }
+}
+
 if (!service.value.hasOwnProperty("storage")) {
     skapi.storageInformation(service.value.service).then((storage) => {
-    service.value.storage = storage.cloud + storage.database + storage.email;
+        service.value.storage = storage.cloud + storage.database + storage.email;
     });
 }
 
@@ -749,6 +789,12 @@ watch(
     }
 );
 
+// window.addEventListener('scroll', scrollEvent, { passive: true });
+
+// onBeforeUnmount(() => {
+//     window.removeEventListener('scroll', scrollEvent, { passive: true });
+// })
+
 onBeforeMount(() => {
     if ("subdomain" in service.value) {
     if (service.value.subdomain.includes("*")) {
@@ -776,19 +822,6 @@ onBeforeMount(() => {
     //     domain.value = false;
     // }
 });
-// console.log(service.value.subdomain, service.value.service)
-
-// onMounted(() => {
-//   // 페이지 로드 시 초기 데이터를 가져오는 메서드 호출
-//   loadMore();
-//   // 스크롤 이벤트 감지
-//   window.addEventListener('scroll', handleScroll);
-// });
-
-// onUnmounted(() => {
-//   // 컴포넌트가 파괴될 때 스크롤 이벤트 리스너 제거
-//   window.removeEventListener('scroll', handleScroll);
-// });
 </script>
 
 <style lang="less" scoped>
@@ -1136,7 +1169,7 @@ onBeforeMount(() => {
 }
 
 .directoryFiles {
-    max-height: 400px;
+    max-height: 500px;
     overflow: scroll;
 }
 

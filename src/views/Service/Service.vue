@@ -67,14 +67,14 @@ template(v-else)
                     .name
                         span newsletter_group0
                     .value
-                        span {{ skapi.requestNewsletterSender(service.service, 0) }}
+                        span {{ newsEmail[0] }}
                     .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
                         Icon copy 
                 .emailGridItem
                     .name
                         span newsletter_group1
                     .value
-                        span {{ skapi.requestNewsletterSender(service.service, 1) }}
+                        span {{ newsEmail[1] }}
                     .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
                         Icon copy 
 
@@ -150,7 +150,7 @@ template(v-else)
                         Icon trash
                         span Delete
             .filesContainer
-                .fetching(v-if="isFetching" style="text-align:center;")
+                .fetching(v-if="isFetching && !service?.files?.[service.subdomain+currentDirectory]?.list?.length" style="text-align:center;")
                     Icon.animationRotation refresh
                 //- .fetching(v-if='isFetching' v-for="t in numberOfSkeletons()" style="background: #656565; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; margin-top: 16px;")
                 //-     span &nbsp;
@@ -236,7 +236,7 @@ sui-overlay(ref="deleteErrorOverlay")
 </template>
 
 <script setup>
-import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onBeforeUnmount } from "vue";
+import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onBeforeUnmount, onMounted } from "vue";
 import { state, skapi } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
@@ -270,6 +270,7 @@ const isFetching = ref(false);
 const isEmpty = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
+const newsEmail = [];
 
 const filesToUpload = ref(0);
 const folderUpload = ref(null);
@@ -673,6 +674,9 @@ const deleteSubdomain = async () => {
 };
 
 const getMoreDirectory = (directory) => {
+    let findingDirectory = service.value.subdomain + (directory ? directory : '/');
+    if(isFetching.value || service.value.files[findingDirectory].endOfList) return false;
+
     let params = {
         service: service.value.service,
     };
@@ -789,13 +793,13 @@ watch(
     }
 );
 
-// window.addEventListener('scroll', scrollEvent, { passive: true });
+onBeforeMount(async() => {
+    for(let i=0; i<2; i++) {
+        skapi.requestNewsletterSender(service.value.service, i).then((e) => {
+            newsEmail.push(e);
+        });
+    }
 
-// onBeforeUnmount(() => {
-//     window.removeEventListener('scroll', scrollEvent, { passive: true });
-// })
-
-onBeforeMount(() => {
     if ("subdomain" in service.value) {
     if (service.value.subdomain.includes("*")) {
         domain.value = false;

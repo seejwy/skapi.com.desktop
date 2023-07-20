@@ -288,6 +288,7 @@ const uploadFiles = async () => {
   } finally {
     isSaving.value = false;
     isComplete.value = true;
+    emit('close', '');
   }
 };
 

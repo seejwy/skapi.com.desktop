@@ -53,7 +53,7 @@ template(v-else)
         .innerContainer 
             .titleActionsWrapper
                 .titleWrapper
-                    Icon setting
+                    Icon mail
                     h2 Email Triggers
             .emailGrid
                 .emailGridItem(v-for="(email, name) in emailGrid")
@@ -61,21 +61,23 @@ template(v-else)
                         span {{ name }}
                     .value
                         span {{ email }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
+                    .actions(@click="copy")
                         Icon copy   
                 .emailGridItem
                     .name
-                        span newsletter_group0
+                        span public newsletter_group0
                     .value
-                        span {{ newsEmail[0] }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
+                        span(v-if="newsEmail[0] == null" style="font-weight: 300;") loading...
+                        span(v-else) {{ newsEmail[0] }}
+                    .actions(@click="copy")
                         Icon copy 
                 .emailGridItem
                     .name
-                        span newsletter_group1
+                        span user newsletter_group1
                     .value
-                        span {{ newsEmail[1] }}
-                    .actions(@click="copy" :class="{'disabled': !state.user.email_verified ? true : null}")
+                        span(v-if="newsEmail[1] == null" style="font-weight: 300;") loading...
+                        span(v-else) {{ newsEmail[1] }}
+                    .actions(@click="copy")
                         Icon copy 
 
     // user & record
@@ -220,7 +222,7 @@ sui-overlay(ref="deleteSubdomainOverlay")
             div Deleting Subdomain?
         .body 
             p Are you sure you want to delete "{{ service.subdomain }}" permanently? #[br] All uploaded files will be deleted along with your subdomain. #[br] You will not be able to undo this action.
-            p To confirm deletion, enter Service ID #[br] #[span(style="font-weight: bold") {{ service.subdomain }}]
+            p To confirm deletion, enter Subdomain name #[br] #[span(style="font-weight: bold") {{ service.subdomain }}]
             sui-input(:placeholder="service.subdomain" :value="confirmationCode" @input="(e) => confirmationCode = e.target.value")
         .foot
             sui-button(type="button" @click="()=> { deleteSubdomainOverlay.close(); confirmationCode = ''}").textButton Cancel
@@ -367,6 +369,12 @@ const settingGrid = reactive([
 
 const emailGrid = computed(() => {return service.value.email_triggers.template_setters});
 
+for(let i=0; i<2; i++) {
+    skapi.requestNewsletterSender(service.value.service, i).then((e) => {
+        newsEmail.push(e);
+    });
+}
+
 const edit = () => {
     if (!state.user.email_verified) return false;
     isEdit.value = true;
@@ -511,7 +519,7 @@ const deleteFiles = () => {
         keys: selectedFiles.value,
         service: service.value.service,
     })
-    .then((res) => {
+    .then(async(res) => {
         selectedFiles.value.forEach((path) => {
             const regex = /^.*?\//;
             let result = path.replace(regex, "");
@@ -560,6 +568,7 @@ const deleteFiles = () => {
 
         isDeleting.value = false;
         selectedFiles.value = [];
+        await getMoreDirectory();
     });
 };
 
@@ -673,7 +682,7 @@ const deleteSubdomain = async () => {
     }
 };
 
-const getMoreDirectory = (directory) => {
+const getMoreDirectory = async(directory) => {
     let findingDirectory = service.value.subdomain + (directory ? directory : '/');
     if(isFetching.value || service.value.files[findingDirectory].endOfList) return false;
 
@@ -794,12 +803,6 @@ watch(
 );
 
 onBeforeMount(async() => {
-    for(let i=0; i<2; i++) {
-        skapi.requestNewsletterSender(service.value.service, i).then((e) => {
-            newsEmail.push(e);
-        });
-    }
-
     if ("subdomain" in service.value) {
     if (service.value.subdomain.includes("*")) {
         domain.value = false;
@@ -1031,10 +1034,19 @@ onBeforeMount(async() => {
 }
 .emailGrid {
     &Item {
+        margin-bottom: 20px;
         &:last-child {
             margin-bottom: 0;
         }
-        margin-bottom: 20px;
+        .value {
+            span {
+                display: inline-block;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+                width: 750px;
+            }
+        }
     }
     .actions {
         position: absolute;

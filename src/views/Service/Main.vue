@@ -159,6 +159,89 @@
         flex-grow: 1;
     }
 }
+
+@media (max-width: 1024px) {
+    .servicePageShell {
+        display: block;
+
+        .sidebar {
+            height: unset;
+            width: unset;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            min-height: unset;
+            flex-wrap: wrap;
+            bottom: 0px;
+            position: fixed;
+            top: unset;
+            left: 0;
+            right: 0;
+            max-width: unset;
+            
+            &>* {
+                display: inline-block;
+                color: #fff;
+            }
+
+            & .logo {
+                display: none;
+            }
+
+            &>a {
+                width: 36px;
+                height: 36px;
+                margin: 12px 16px;
+            }
+                
+            a {
+                white-space: nowrap;
+                span {    
+                    vertical-align: middle;
+                }
+            }
+            &:hover {
+                flex-shrink: 0;
+                width: 170px;
+
+                .logo {
+                    display: none;
+                }
+                .hoverLogo {
+                    display: block;
+                    height: 35px;
+                    margin: 14px 14px 11px 14px;
+                }
+
+                a {
+                    background: transparent;
+                    display: block;
+                    width: 100%;
+                    margin: 0;
+                    border-radius: 4px;
+                    padding: 14px 8px;
+                    border-radius: 0;
+                    &:hover {
+
+                        background: rgba(255, 255, 255, .2);
+                        span{
+                            font-weight: bold;
+                        }
+                    }
+                }
+
+                a span {
+                    display: inline-block;
+                }
+            }
+            
+        }
+
+        .sideScreen {
+            flex-grow: 1;
+        }
+    }
+}
 </style>
 <script setup>
 import NavBar from '@/components/Navbar.vue';

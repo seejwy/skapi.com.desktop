@@ -432,7 +432,7 @@ main {
             height: auto;
             // height: 375px;
             padding: 100px 0;
-            background: url("src/assets/img/icons/Asset 33.png") no-repeat center;
+            background: url("@/assets/img/icons/Asset 33.png") no-repeat center;
             background-size: cover;
             display: flex;
             align-items: center;

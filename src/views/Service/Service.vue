@@ -10,6 +10,7 @@ template(v-else)
         div.action
             a(href="https://docs.skapi.com/the-basics/#connecting-to-your-service" target="_blank")
                 sui-button.lineButton(type="button") Find out More
+
     // service information
     .container
         .innerContainer 
@@ -57,26 +58,24 @@ template(v-else)
                     h2 Email Triggers
             .emailGrid
                 .emailGridItem(v-for="(email, name) in emailGrid")
-                    .name
-                        span {{ name }}
-                    .value
-                        span {{ email }}
+                    .name {{ name }}
+                    .value {{ email }}
                     .actions(@click="copy")
                         Icon copy   
                 .emailGridItem
                     .name
                         span public newsletter_group0
                     .value
-                        span(v-if="newsEmail[0] == null" style="font-weight: 300;") loading...
-                        span(v-else) {{ newsEmail[0] }}
+                        template(v-if="newsEmail[0] == null" style="font-weight: 300;") loading...
+                        template(v-else) {{ newsEmail[0] }}
                     .actions(@click="copy")
                         Icon copy 
                 .emailGridItem
                     .name
                         span user newsletter_group1
                     .value
-                        span(v-if="newsEmail[1] == null" style="font-weight: 300;") loading...
-                        span(v-else) {{ newsEmail[1] }}
+                        template(v-if="newsEmail[1] == null" style="font-weight: 300;") loading...
+                        template(v-else) {{ newsEmail[1] }}
                     .actions(@click="copy")
                         Icon copy 
 
@@ -137,6 +136,7 @@ template(v-else)
             .domainGrid.deleting(v-else-if="deleting") 
                 h3 Deleting subdomain ...
                 span It may take a few minutes for a subdomain to be deleted.
+
     // uploaded list
     .container(v-if="domain")
         .innerContainer    
@@ -181,14 +181,6 @@ template(v-else)
                                     Icon file
                                     a(:href="`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`" download).path-wrapper
                                         span.path {{ file.name }}
-                    //- .paginator(style="text-align:center")
-                    //-     Icon.arrow(@click="prevPage" :disabled="currentPage === 1") left
-                    //-     span.page(v-for="page in visiblePages" :key="page" @click="gotoPage(page)" :class="{ active: page === currentPage }") {{ page }}
-                    //-     Icon.arrow(@click="nextPage" :disabled="currentPage === totalPages") right
-                                .paginator
-                                Icon.arrow(
-                        :class="{active: currentSelectedTableBatch || currentSelectedTablePage}"
-                        @click="()=>{ if(currentSelectedTablePage) currentSelectedTablePage--; else if(currentSelectedTableBatch) { currentSelectedTablePage = numberOfPagePerBatch - 1; currentSelectedTableBatch--; } }") left
 
     // overlay window
     sui-overlay(v-if="isEdit" ref="settingWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; settingWindow.close(()=>isEdit = false)}")
@@ -202,6 +194,7 @@ template(v-else)
     sui-overlay(v-if="isUpload" ref="uploadWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
         div.overlay
             AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}" :currentDirectory="currentDirectory")
+            
 // delete window
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
@@ -392,8 +385,8 @@ const upload = () => {
 
 const copy = (e) => {
     let doc = document.createElement('textarea');
-    
-    doc.textContent = e.target.parentNode.parentNode.previousElementSibling.childNodes[0].innerText;
+
+    doc.textContent = e.target.parentNode.parentNode.previousElementSibling.innerText;
     document.body.append(doc);
     doc.select();
     document.execCommand('copy');
@@ -1035,17 +1028,16 @@ onBeforeMount(async() => {
 .emailGrid {
     &Item {
         margin-bottom: 20px;
+        overflow: hidden;
+        white-space: nowrap;
         &:last-child {
             margin-bottom: 0;
         }
         .value {
-            span {
-                display: inline-block;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                overflow: hidden;
-                width: 750px;
-            }
+            width: calc(100% - 30px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     }
     .actions {

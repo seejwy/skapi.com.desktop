@@ -20,7 +20,7 @@ template(v-else)
                     h2 Service Information
                 .actions(@click="deleteServiceAsk" :class="{'disabled': !state.user.email_verified ? true : null}")
                     Icon(style="width: 20px; height: 20px;") trash
-                    span Delete Service
+                    span Delete
             .informationGrid
                 .informationGridItem(v-for="info in informationGrid" :class="[info.span ? `span-${info?.span}` : '']")
                     .name {{ info.name }}
@@ -49,30 +49,37 @@ template(v-else)
                         span(v-else) Disabled
                     .value(v-else) {{  service[setting.key] || '-' }}
 
-    // email_triggers
+    // email_triggers_basic
     .container 
         .innerContainer 
             .titleActionsWrapper
                 .titleWrapper
                     Icon mail
-                    h2 Email Triggers
+                    h2 Basic Email Triggers
             .emailGrid
                 .emailGridItem(v-for="(email, name) in emailGrid")
                     .name {{ name }}
                     .value {{ email }}
                     .actions(@click="copy")
                         Icon copy   
+
+    // email_triggers_newsletter
+    .container 
+        .innerContainer 
+            .titleActionsWrapper
+                .titleWrapper
+                    Icon mail
+                    h2 Newsletter Email Triggers
+            .emailGrid  
                 .emailGridItem
-                    .name
-                        span public newsletter_group0
+                    .name public newsletter_group0
                     .value
                         template(v-if="newsEmail[0] == null" style="font-weight: 300;") loading...
                         template(v-else) {{ newsEmail[0] }}
                     .actions(@click="copy")
                         Icon copy 
                 .emailGridItem
-                    .name
-                        span user newsletter_group1
+                    .name user newsletter_group1
                     .value
                         template(v-if="newsEmail[1] == null" style="font-weight: 300;") loading...
                         template(v-else) {{ newsEmail[1] }}
@@ -115,16 +122,20 @@ template(v-else)
                 .titleWrapper
                     Icon domain
                     h2 Subdomain
-                .actions(@click="create" :class="{'disabled': !state.user.email_verified ? true : null}")
+                .actions(@click="create")
                     Icon pencil
                     span Create
             .titleActionsWrapper(v-else)
                 .titleWrapper
                     Icon domain
                     h2 Subdomain
-                .actions(v-if="service.subdomain && !deleting" @click="deleteSubdomainAsk" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    Icon(style="width: 20px; height: 20px;") trash
-                    span Delete Subdomain
+                .actionWrapper(v-if="service.subdomain && !deleting" :class="{'disabled': !state.user.email_verified ? true : null}")
+                    .actions(@click="setting404")
+                        Icon setting
+                        span setting
+                    .actions(@click="deleteSubdomainAsk" :class="{'active': !isEmpty}")
+                        Icon(style="width: 20px; height: 20px;") trash
+                        span Delete
             .domainGrid(v-if="domain")
                 .domainGridItem
                     .name
@@ -149,7 +160,7 @@ template(v-else)
                         Icon pencil
                         span Upload
                     .actions(@click="deleteFiles" :class="{'active': !isEmpty}")
-                        Icon trash
+                        Icon(style="width: 20px; height: 20px;") trash
                         span Delete
             .filesContainer
                 .fetching(v-if="isFetching && !service?.files?.[service.subdomain+currentDirectory]?.list?.length" style="text-align:center;")
@@ -194,6 +205,10 @@ template(v-else)
     sui-overlay(v-if="isUpload" ref="uploadWindow" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}")
         div.overlay
             AddFiles(@close="async()=>{await state.blockingPromise; uploadWindow.close(()=>isUpload = false)}" :currentDirectory="currentDirectory")
+
+    sui-overlay(v-if="isSetting404" ref="setting404Window" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; setting404Window.close(()=>isSetting404 = false)}")
+        div.overlay
+            Setting404(@close="async()=>{await state.blockingPromise; setting404Window.close(()=>isSetting404 = false)}")
             
 // delete window
 sui-overlay(ref="deleteConfirmOverlay")
@@ -241,6 +256,7 @@ import Subdomain from "@/views/Service/Subdomain.vue";
 import Icon from "@/components/Icon.vue";
 import SubmitButton from "@/components/SubmitButton.vue";
 import AddFiles from "@/views/Service/AddFiles.vue";
+import Setting404 from "@/views/Service/Setting404.vue"
 
 const route = useRoute();
 const router = useRouter();
@@ -252,6 +268,7 @@ pageTitle.value = 'Service "' + service.value.name + '"';
 const settingWindow = ref(null);
 const subdomainWindow = ref(null);
 const uploadWindow = ref(null);
+const setting404Window = ref(null);
 const deleteConfirmOverlay = ref(null);
 const deleteSubdomainOverlay = ref(null);
 const deleteErrorOverlay = ref(null);
@@ -260,6 +277,7 @@ const deleteErrorMessage = ref("");
 const isEdit = ref(false);
 const isCreate = ref(false);
 const isUpload = ref(false);
+const isSetting404 = ref(false);
 const isDisabled = ref(false);
 const isFetching = ref(false);
 const isEmpty = ref(false);
@@ -383,6 +401,11 @@ const upload = () => {
     isUpload.value = true;
 };
 
+const setting404 = () => {
+    if (!state.user.email_verified) return false;
+    isSetting404.value = true;
+}
+
 const copy = (e) => {
     let doc = document.createElement('textarea');
 
@@ -463,23 +486,25 @@ const getDirectory = (directory = '/') => {
         }
 
         files.list.forEach((file) => {
-            let filename = extractFileName(file.name);
-
-            if (file.type === "folder") {
-                service.value.files[
-                    `${service.value.subdomain}${currentDirectory.value}`
-                ].list.push({
-                    name: filename,
-                    type: "folder",
-                });
-                } else {
-                service.value.files[
-                    `${service.value.subdomain}${currentDirectory.value}`
-                ].list.push({
-                    type: "file",
-                    file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
-                    name: filename,
-                });
+            if(file.name !== service.value.subdomain + '/.cfacdb7c8270a90aba6011585793dfc3/' && file.name !== service.value.subdomain + '/cfacdb7c8270a90aba6011585793dfc3.html') {
+                let filename = extractFileName(file.name);
+    
+                if (file.type === "folder") {
+                    service.value.files[
+                        `${service.value.subdomain}${currentDirectory.value}`
+                    ].list.push({
+                        name: filename,
+                        type: "folder",
+                    });
+                    } else {
+                    service.value.files[
+                        `${service.value.subdomain}${currentDirectory.value}`
+                    ].list.push({
+                        type: "file",
+                        file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
+                        name: filename,
+                    });
+                }
             }
         });
 
@@ -759,6 +784,16 @@ watch(
     await nextTick();
     if (isUpload.value) {
         uploadWindow.value.open();
+    }
+    }
+);
+
+watch(
+    () => isSetting404.value,
+    async () => {
+    await nextTick();
+    if (isSetting404.value) {
+        setting404Window.value.open();
     }
     }
 );

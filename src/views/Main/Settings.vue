@@ -31,6 +31,7 @@ div(v-else-if="state?.user" :loading="isSaving || null")
                 span Verify Email
             hr   
             .title Newsletter Subscription
+            //- .value(style="width: calc(100% - 200px);")
             .value
                 template(v-if="isEdit")
                     label
@@ -42,7 +43,7 @@ div(v-else-if="state?.user" :loading="isSaving || null")
                     template(v-else) Not Subscribed
             hr
             .title(style="margin-bottom: 0;") Password
-            .value
+            //- .value
             .actions
                 span(@click="() => { if(isSaving) return false; passwordOverlay.open()}") Change Password
             hr
@@ -335,6 +336,7 @@ watch(() => state.user, async (user) => {
     }
 
     .value {
+        width: calc(100% - 400px);
         display: inline-block;
         &>span {
             margin-right: 8px;
@@ -362,6 +364,7 @@ watch(() => state.user, async (user) => {
     }
 
     .actions {
+        min-width: 200px;
         display: inline-block;
         color: var(--primary-color);
         font-weight: bold;
@@ -428,4 +431,12 @@ watch(() => state.user, async (user) => {
         margin-left: 16px;
     }
 }
+
+@media (max-width: 850px) {
+    .settings {
+        .value {
+            width: calc(100% - 200px);
+        }
+    }
+}    
 </style> 

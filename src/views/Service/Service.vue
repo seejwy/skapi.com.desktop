@@ -57,11 +57,31 @@ template(v-else)
                     Icon mail
                     h2 Basic Email Triggers
             .emailGrid
-                .emailGridItem(v-for="(email, name) in emailGrid")
-                    .name {{ name }}
-                    .value {{ email }}
+                //- .emailGridItem(v-for="(email, name) in emailGrid")
+                //-     .name {{ name }}
+                //-     .value {{ email }}
+                //-     .actions(@click="copy")
+                //-         Icon copy   
+                .emailGridItem
+                    .name Welcome
+                    .value {{ service?.email_triggers.template_setters.welcome }}
                     .actions(@click="copy")
                         Icon copy   
+                .emailGridItem
+                    .name Newsletter Subscription
+                    .value {{ service?.email_triggers.template_setters.newsletter_subscription }}
+                    .actions(@click="copy")
+                        Icon copy  
+                .emailGridItem
+                    .name Verification
+                    .value {{ service?.email_triggers.template_setters.verification }}
+                    .actions(@click="copy")
+                        Icon copy  
+                .emailGridItem
+                    .name Signup Confirmation
+                    .value {{ service?.email_triggers.template_setters.signup_confirmation }}
+                    .actions(@click="copy")
+                        Icon copy  
 
     // email_triggers_newsletter
     .container 
@@ -285,16 +305,9 @@ const isEmpty = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
 
-const filesToUpload = ref(0);
 const folderUpload = ref(null);
 const fileUpload = ref(null);
-const fileList = ref({});
-const isComplete = ref(false);
-const directoryFiles = ref({});
-const isSaving = ref(false);
-const numberOfFailedUploads = ref(-1);
 const currentDirectory = ref("/");
-let abortUpload = "";
 const selectedFiles = ref([]);
 
 
@@ -373,7 +386,7 @@ const settingGrid = reactive([
     },
 ]);
 
-const emailGrid = computed(() => {return service.value.email_triggers.template_setters});
+// const emailGrid = computed(() => {return service.value.email_triggers.template_setters});
 
 const edit = () => {
     if (!state.user.email_verified) return false;
@@ -788,6 +801,7 @@ onMounted(() => {
             });
         }
     }
+    
 })
 </script>
 

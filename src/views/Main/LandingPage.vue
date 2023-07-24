@@ -9,8 +9,8 @@ section#section.intro
             img.btnImg(src="@/assets/img/icons/Asset6.svg")
             span Get Started
             img.arrowImg(src="@/assets/img/icons/arrow_right.svg")
-        img.mainImg(src="@/assets/img/icons/main illu.svg")
-        img.mainImgMobile(src="@/assets/img/icons/main illu_mobile.svg")
+        img.mainImg(src="@/assets/img/icons/main_illu.svg")
+        img.mainImgMobile(src="@/assets/img/icons/main_illu_mobile.svg")
 
 section#section.video
     .container 

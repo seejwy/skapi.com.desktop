@@ -310,7 +310,6 @@ const fileUpload = ref(null);
 const currentDirectory = ref("/");
 const selectedFiles = ref([]);
 
-
 const informationGrid = reactive([
     {
         name: "Service ID",

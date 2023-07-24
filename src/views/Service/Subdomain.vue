@@ -4,7 +4,7 @@
         .overlayContainerTitle Create Subdomain
         .input
             label Subdomain
-            sui-input(type="text" placeholder="Name of Subdomain" ref='inputdomain' required)
+            sui-input(type="text" placeholder="Name of Subdomain" :value='inputdomain' @input="(e) => inputdomain = e.target.value" required)
         sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
         SubmitButton(:loading="isDisabled") Save
 </template>
@@ -20,16 +20,17 @@ const emit = defineEmits(['close']);
 
 let service = inject('service');
 let isDisabled = ref(false);
-let inputdomain = null;
+let inputdomain = ref(null);
+
 const create = async() => {
     isDisabled.value = true;
     try {
         await skapi.registerSubdomain({
             service: service.value.service,
-            subdomain: inputdomain.el.value,
+            subdomain: inputdomain.value,
             exec: 'register'
         }).then(() => {
-            service.value.subdomain = inputdomain.el.value;
+            service.value.subdomain = inputdomain.value;
         })
     } catch(e) {
         console.log(e);

@@ -74,15 +74,15 @@ template(v-else)
                 .emailGridItem
                     .name public newsletter_group0
                     .value
-                        template(v-if="newsEmail[0] == null" style="font-weight: 300;") loading...
-                        template(v-else) {{ newsEmail[0] }}
+                        template(v-if="service?.newsletter_triggers?.[0]") {{service?.newsletter_triggers?.[0]}}
+                        template(v-else) Loading...
                     .actions(@click="copy")
                         Icon copy 
                 .emailGridItem
                     .name user newsletter_group1
                     .value
-                        template(v-if="newsEmail[1] == null" style="font-weight: 300;") loading...
-                        template(v-else) {{ newsEmail[1] }}
+                        template(v-if="service?.newsletter_triggers?.[1]") {{service?.newsletter_triggers?.[1]}}
+                        template(v-else) Loading...
                     .actions(@click="copy")
                         Icon copy 
 
@@ -280,10 +280,10 @@ const isUpload = ref(false);
 const isSetting404 = ref(false);
 const isDisabled = ref(false);
 const isFetching = ref(false);
+const isDeleting = ref(false);
 const isEmpty = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
-const newsEmail = [];
 
 const filesToUpload = ref(0);
 const folderUpload = ref(null);
@@ -297,22 +297,17 @@ const currentDirectory = ref("/");
 let abortUpload = "";
 const selectedFiles = ref([]);
 
-const isDeleting = ref(false);
-
-// skapi.requestNewsletterSender(service.value.service, 1).then((e) => {
-//     console.log(e);
-// })
 
 const informationGrid = reactive([
     {
-    name: "Service ID",
-    key: "service",
-    span: 2,
+        name: "Service ID",
+        key: "service",
+        span: 2,
     },
     {
-    name: "Owner's ID",
-    key: "owner",
-    span: 2,
+        name: "Owner's ID",
+        key: "owner",
+        span: 2,
     },
     // {
     //     name: 'Group',
@@ -322,30 +317,30 @@ const informationGrid = reactive([
     //     }
     // },
     {
-    name: "Service Location",
-    key: "region",
-    filter: (value) => {
-        return localeName(value);
-    },
-    },
-    {
-    name: "Date Created",
-    key: "timestamp",
-    filter: (value) => {
-        return dateFormat(value).split(" ")[0];
-    },
+        name: "Service Location",
+        key: "region",
+        filter: (value) => {
+            return localeName(value);
+        },
     },
     {
-    name: "Storage Use",
-    key: "storage",
-    filter: (value) => {
-        let val = value || 0;
-        return getSize(val);
-    },
+        name: "Date Created",
+        key: "timestamp",
+        filter: (value) => {
+            return dateFormat(value).split(" ")[0];
+        },
     },
     {
-    name: "# of Users",
-    key: "users",
+        name: "Storage Use",
+        key: "storage",
+        filter: (value) => {
+            let val = value || 0;
+            return getSize(val);
+        },
+    },
+    {
+        name: "# of Users",
+        key: "users",
     },
     // {
     //     name: '# of Newsletter Sub',
@@ -355,36 +350,30 @@ const informationGrid = reactive([
 
 const settingGrid = reactive([
     {
-    name: "Enable/Disable",
-    key: "active",
-    filter: () => {
-        return 1;
-        // return .indicator(:class="{'active': service.active > 0}")
-    },
-    },
-    {
-    name: "Name of Service",
-    key: "name",
+        name: "Enable/Disable",
+        key: "active",
+        filter: () => {
+            return 1;
+            // return .indicator(:class="{'active': service.active > 0}")
+        },
     },
     {
-    name: "CORS",
-    key: "cors",
-    tip: "When CORS is set, your website will not be able to connect to your service unless the request comes from a valid host.",
+        name: "Name of Service",
+        key: "name",
     },
     {
-    name: "API Key",
-    key: "api_key",
-    tip: "You can set your own private API key if you wish to integrate your users' secure requests to your external backend server.",
+        name: "CORS",
+        key: "cors",
+        tip: "When CORS is set, your website will not be able to connect to your service unless the request comes from a valid host.",
+    },
+    {
+        name: "API Key",
+        key: "api_key",
+        tip: "You can set your own private API key if you wish to integrate your users' secure requests to your external backend server.",
     },
 ]);
 
 const emailGrid = computed(() => {return service.value.email_triggers.template_setters});
-
-for(let i=0; i<2; i++) {
-    skapi.requestNewsletterSender(service.value.service, i).then((e) => {
-        newsEmail.push(e);
-    });
-}
 
 const edit = () => {
     if (!state.user.email_verified) return false;
@@ -520,10 +509,10 @@ const goUpDirectory = () => {
     let newDirectory = "/";
 
     if (directoryArray.length) {
-    newDirectory = `/${directoryArray.join("/")}/`;
-    getDirectory(newDirectory);
+        newDirectory = `/${directoryArray.join("/")}/`;
+        getDirectory(newDirectory);
     } else {
-    getDirectory();
+        getDirectory();
     }
 
     currentDirectory.value = newDirectory;
@@ -532,8 +521,7 @@ const goUpDirectory = () => {
 const deleteFiles = () => {
     isDeleting.value = true;
 
-    skapi
-    .deleteHostFile({
+    skapi.deleteHostFile({
         keys: selectedFiles.value,
         service: service.value.service,
     })
@@ -546,41 +534,28 @@ const deleteFiles = () => {
             let index;
 
             if (result[result.length - 1] === "/") {
-            index = service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.findIndex((path) => {
-                return path.name === pathArray[pathArray.length - 2] + "/";
-            });
+                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                    return path.name === pathArray[pathArray.length - 2] + "/";
+                });
             } else {
-            index = service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.findIndex((path) => {
-                return path.name === extractFileName(result);
-            });
+                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                    return path.name === extractFileName(result);
+                });
             }
 
-            service.value.files[
-            `${subdomain}${currentDirectory.value}`
-            ].list.splice(index, 1);
+            service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
 
-            if (
-            service.value.files[`${subdomain}${currentDirectory.value}`].list
-                .length <= 0
-            ) {
-            let oldDirectory = currentDirectory.value;
-            let newDirectory = currentDirectory.value.split("/");
-            newDirectory.splice(-2);
-            currentDirectory.value = newDirectory.join("/") + "/";
-            let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
-            index = service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.findIndex((path) => {
-                return path.name === folderToDelete;
-            });
+            if (service.value.files[`${subdomain}${currentDirectory.value}`].list.length <= 0) {
+                let oldDirectory = currentDirectory.value;
+                let newDirectory = currentDirectory.value.split("/");
+                newDirectory.splice(-2);
+                currentDirectory.value = newDirectory.join("/") + "/";
+                let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
+                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                    return path.name === folderToDelete;
+                });
 
-            service.value.files[
-                `${subdomain}${currentDirectory.value}`
-            ].list.splice(index, 1);
+                service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
             }
         });
 
@@ -591,12 +566,7 @@ const deleteFiles = () => {
 };
 
 const jumpto = (index) => {
-    getDirectory(
-    `/${currentDirectoryArray.value
-        .slice(index * -1)
-        .reverse()
-        .join("/")}/`
-    );
+    getDirectory(`/${currentDirectoryArray.value.slice(index * -1).reverse().join("/")}/`);
 };
 
 function extractFileName(file) {
@@ -604,7 +574,7 @@ function extractFileName(file) {
     const match = file.match(regex);
 
     if (match && match.length > 0) {
-    return match[0].replace("/", "");
+        return match[0].replace("/", "");
     }
 
     return null;
@@ -612,47 +582,34 @@ function extractFileName(file) {
 
 const checkboxHandler = (e) => {
     if (e.target.checked) {
-    selectedFiles.value.push(`${service.value.subdomain}/${e.target.value}`);
+        selectedFiles.value.push(`${service.value.subdomain}/${e.target.value}`);
     } else {
-    selectedFiles.value.splice(
-        selectedFiles.value.indexOf(
-        `${service.value.subdomain}/${e.target.value}`
-        ),
-        1
-    );
+        selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`),1);
     }
 };
 
 const currentDirectoryArray = computed(() => {
     selectedFiles.value = [];
-    return currentDirectory.value
-    .split("/")
-    .reverse()
-    .filter((value) => {
-        return value;
-    });
+    return currentDirectory.value.split("/").reverse().filter((value) => {return value;});
 });
 
 const deleteService = () => {
     isDisabled.value = true;
     if (confirmationCode.value !== service.value.service) {
-    confirmationCode.value = "";
-    deleteErrorMessage.value = "Your service code did not match.";
+        confirmationCode.value = "";
+        deleteErrorMessage.value = "Your service code did not match.";
     if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
-    deleteErrorOverlay.value.open();
-    isDisabled.value = false;
-    return;
+        deleteErrorOverlay.value.open();
+        isDisabled.value = false;
+        return;
     }
 
-    skapi
-    .deleteService(service.value.service)
-    .then(() => {
+    skapi.deleteService(service.value.service).then(() => {
         if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         router.replace("/admin");
     })
     .catch(() => {
-        deleteErrorMessage.value =
-        "Please disable your service before deleting it.";
+        deleteErrorMessage.value ="Please disable your service before deleting it.";
         if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         deleteErrorOverlay.value.open();
     })
@@ -665,38 +622,36 @@ const deleteService = () => {
 const deleteSubdomain = async () => {
     isDisabled.value = true;
     if (confirmationCode.value !== service.value.subdomain) {
-    confirmationCode.value = "";
-    deleteErrorMessage.value = "Your subdomain name did not match.";
+        confirmationCode.value = "";
+        deleteErrorMessage.value = "Your subdomain name did not match.";
     if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-    deleteErrorOverlay.value.open();
-    isDisabled.value = false;
-    return;
+        deleteErrorOverlay.value.open();
+        isDisabled.value = false;
+        return;
     }
 
     try {
-    await skapi
-        .registerSubdomain({
-        service: service.value.service,
-        subdomain: service.value.subdomain,
-        exec: "remove",
-        })
-        .then(() => {
-        if (service.value.subdomain.includes("*")) {
-            deleting.value = true;
-        } else {
-            deleting.value = false;
-        }
+        await skapi.registerSubdomain({
+            service: service.value.service,
+            subdomain: service.value.subdomain,
+            exec: "remove",
+        }).then(() => {
+            if (service.value.subdomain.includes("*")) {
+                deleting.value = true;
+            } else {
+                deleting.value = false;
+            }
         });
     } catch (e) {
-    deleteErrorMessage.value = e.message;
-    if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
-    deleteErrorOverlay.value.open();
-    isDisabled.value = false;
+        deleteErrorMessage.value = e.message;
+        if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
+        deleteErrorOverlay.value.open();
+        isDisabled.value = false;
     } finally {
-    deleting.value = true;
-    domain.value = false;
-    isDisabled.value = false;
-    deleteSubdomainOverlay.value.close();
+        deleting.value = true;
+        domain.value = false;
+        isDisabled.value = false;
+        deleteSubdomainOverlay.value.close();
     }
 };
 
@@ -723,16 +678,12 @@ const getMoreDirectory = async(directory) => {
             let filename = extractFileName(file.name);
 
             if (file.type === "folder") {
-                service.value.files[
-                    `${service.value.subdomain}${currentDirectory.value}`
-                ].list.push({
+                service.value.files[`${service.value.subdomain}${currentDirectory.value}`].list.push({
                     name: filename,
                     type: "folder",
                 });
             } else {
-                service.value.files[
-                    `${service.value.subdomain}${currentDirectory.value}`
-                ].list.push({
+                service.value.files[`${service.value.subdomain}${currentDirectory.value}`].list.push({
                     type: "file",
                     file, // url: `https://${service.value.subdomain}.skapi.com${currentDirectory.value}${filename}`,
                     name: filename,
@@ -758,105 +709,86 @@ if (!service.value.hasOwnProperty("storage")) {
     });
 }
 
-watch(
-    () => isEdit.value,
+watch(() => isEdit.value,
     async () => {
-    await nextTick();
-    if (isEdit.value) {
-        settingWindow.value.open();
-    }
-    }
-);
-
-watch(
-    () => isCreate.value,
-    async () => {
-    await nextTick();
-    if (isCreate.value) {
-        subdomainWindow.value.open();
-    }
-    }
-);
-
-watch(
-    () => isUpload.value,
-    async () => {
-    await nextTick();
-    if (isUpload.value) {
-        uploadWindow.value.open();
-    }
-    }
-);
-
-watch(
-    () => isSetting404.value,
-    async () => {
-    await nextTick();
-    if (isSetting404.value) {
-        setting404Window.value.open();
-    }
-    }
-);
-
-watch(
-    () => service.value.subdomain,
-    () => {
-    // if (service.value.subdomain) {
-    //     domain.value = true;
-
-    //     if (service.value.subdomain.includes('*')) {
-    //         domain.value = false;
-    //         deleting.value = true;
-    //     } else {
-    //         deleting.value = false;
-    //     }
-    // } else {
-    //     domain.value = false;
-    // }
-
-    if ("subdomain" in service.value) {
-        if (service.value.subdomain.includes("*")) {
-        domain.value = false;
-        deleting.value = true;
-        } else {
-        domain.value = true;
-        deleting.value = false;
-        getDirectory();
+        await nextTick();
+        if (isEdit.value) {
+            settingWindow.value.open();
         }
-    } else {
-        domain.value = false;
-        deleting.value = false;
     }
+);
+
+watch(() => isCreate.value,
+    async () => {
+        await nextTick();
+        if (isCreate.value) {
+            subdomainWindow.value.open();
+        }
+    }
+);
+
+watch(() => isUpload.value,
+    async () => {
+        await nextTick();
+        if (isUpload.value) {
+            uploadWindow.value.open();
+        }
+    }
+);
+
+watch(() => isSetting404.value,
+    async () => {
+        await nextTick();
+        if (isSetting404.value) {
+            setting404Window.value.open();
+        }
+    }
+);
+
+watch(() => service.value.subdomain,
+    () => {
+        if ("subdomain" in service.value) {
+            if (service.value.subdomain.includes("*")) {
+            domain.value = false;
+            deleting.value = true;
+            } else {
+            domain.value = true;
+            deleting.value = false;
+            getDirectory();
+            }
+        } else {
+            domain.value = false;
+            deleting.value = false;
+        }
     }
 );
 
 onBeforeMount(async() => {
     if ("subdomain" in service.value) {
-    if (service.value.subdomain.includes("*")) {
+        if (service.value.subdomain.includes("*")) {
+            domain.value = false;
+            deleting.value = true;
+        } else {
+            domain.value = true;
+            deleting.value = false;
+            getDirectory();
+        }
+    } else {
         domain.value = false;
-        deleting.value = true;
-    } else {
-        domain.value = true;
         deleting.value = false;
-        getDirectory();
     }
-    } else {
-    domain.value = false;
-    deleting.value = false;
-    }
-    // if (service.value.subdomain) {
-    //     domain.value = true;
-
-    //     if (service.value.subdomain.includes('*')) {
-    //         domain.value = false;
-    //         deleting.value = true;
-    //     } else {
-    //         deleting.value = false;
-    //     }
-    // } else {
-    //     domain.value = false;
-    // }
 });
+
+onMounted(() => {
+    if (!service.value.hasOwnProperty('newsletter_triggers')) {
+        service.value.newsletter_triggers = [];
+        for(let i=0; i<2; i++) {
+            skapi.requestNewsletterSender(service.value.service, i).then((e) => {
+                service.value.newsletter_triggers.push(e);
+            });
+        }
+    }
+})
 </script>
 
 <style lang="less" scoped>

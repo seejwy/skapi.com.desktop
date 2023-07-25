@@ -438,20 +438,31 @@ watch(() => state.user, async (user) => {
     .settingsWrapper {
         background-color: unset;
         padding: 0;
-        // border-radius: 8px;
-
-        // &.delete {
-        //     line-height: 52px;
-        //     margin-top: 24px;
-        //     padding: 0 37px;
-        //     user-select: none;
-        //     font-weight: bold;
-        //     color: rgba(0, 0, 0, 0.65);
-
-        //     &> {
-        //         cursor: pointer;
-        //     }
-        // }
     }
-}    
+}  
+
+@media (max-width: 700px) {
+    .settingsWrapper.delete {
+        padding: 0;
+    }
+    .settings {
+        .setting {
+            position: relative;
+            padding: 20px 0;
+            &>.title {
+                width: 100%;
+                padding: 0;
+            }
+            .value {
+                width: 100%;
+                padding-top: 20px;
+            }
+            .actions {
+                position: absolute;
+                right: 0px;
+                top: 20px;
+            }
+        }
+    }
+}  
 </style> 

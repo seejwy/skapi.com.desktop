@@ -54,6 +54,15 @@ function storeServices() {
 window.addEventListener('beforeunload', storeServices);
 window.addEventListener("visibilitychange", storeServices);
 
+let desktopMedia = '(min-width: 769px)';
+const desktopSize = window.matchMedia(desktopMedia);
+
+if (!desktopSize.matches) {
+    window.location.href = 'http://m.happybears.camp';
+} else {
+
+}
+
 // init vue
 const app = createApp(App);
 let router = import('@/router/index.js');

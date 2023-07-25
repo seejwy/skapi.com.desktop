@@ -66,9 +66,7 @@ template(v-else)
                 //-         Icon copy   
                 .emailGridItem
                     .name Welcome
-                    .value 
-                        template(v-if="service?.email_triggers?.template_setters.welcome") {{ service?.email_triggers?.template_setters.welcome }}
-                        template(v-else) Loading...
+                    .value {{ service?.email_triggers?.template_setters.welcome }}
                     .actions(@click="copy")
                         Icon copy   
                 .emailGridItem

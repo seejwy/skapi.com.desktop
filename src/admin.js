@@ -90,7 +90,6 @@ export default class Admin extends Skapi {
             auth: true,
             method: 'post'
         });
-
     }
 
     async registerSubdomain(params) {

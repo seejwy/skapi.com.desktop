@@ -230,37 +230,6 @@ main {
                         }
                     }
                 }
-                // a {
-                //     position: relative;
-                //     text-align: right;
-                //     text-decoration: none;
-                //     font-size: 24px;
-                //     color: #fff;
-
-                //     .btnImg {
-                //         position: absolute;
-                //         left: 0;
-                //         top: -10px;
-                //         // transform: translate(-50%, -50%);
-                //         transform: rotate(180deg);
-                //         width: 290px;
-                //     }
-
-                //     .arrowImg {
-                //         position: absolute;
-                //         right: -280px;
-                //         top: -10px;
-                //         width: 50px;
-                //         filter: invert(100%);
-                //     }
-
-                //     span {
-                //         position: absolute;
-                //         left: 85px;
-                //         z-index: 2;
-                //         white-space: nowrap;
-                //     }
-                // }
             }
         }
 
@@ -543,9 +512,7 @@ main {
                         font-size: 2.4vw;
                     }
                     .mainImg {
-                        width: 127vw;
-                        right: auto;
-                        transform: translate(-20px);
+                        width: 100vw;
                     }
                 }
             }
@@ -757,7 +724,7 @@ main {
     }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
     main {
         #section {
             .container {
@@ -773,7 +740,7 @@ main {
             }
 
             &.intro {
-                // height: 560px;
+                height: 625px;
                 margin-bottom: 0;
 
                 .container {
@@ -805,9 +772,10 @@ main {
                     .mainImgMobile {
                         display: block;
                         position: absolute;
-                        width: 160vw;
-                        min-width: 700px;
-                        transform: translate(-100px, -50px);
+                        // width: 160vw;
+                        // min-width: 700px;
+                        width: 700px;
+                        transform: translate(-30px, -100px);
                     }
                 }
             }

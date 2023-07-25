@@ -59,27 +59,31 @@ template(v-else)
             .emailGrid
                 //- .emailGridItem(v-for="(email, name) in emailGrid")
                 //-     .name {{ name }}
-                //-     .value {{ email }}
+                //-     .value 
+                //-         template(v-if="email == null") Loading...
+                //-         template(v-else) {{ email }}
                 //-     .actions(@click="copy")
                 //-         Icon copy   
                 .emailGridItem
                     .name Welcome
-                    .value {{ service?.email_triggers.template_setters.welcome }}
+                    .value 
+                        template(v-if="service?.email_triggers?.template_setters.welcome") {{ service?.email_triggers?.template_setters.welcome }}
+                        template(v-else) Loading...
                     .actions(@click="copy")
                         Icon copy   
                 .emailGridItem
                     .name Newsletter Subscription
-                    .value {{ service?.email_triggers.template_setters.newsletter_subscription }}
+                    .value {{ service?.email_triggers?.template_setters.newsletter_subscription }}
                     .actions(@click="copy")
                         Icon copy  
                 .emailGridItem
                     .name Verification
-                    .value {{ service?.email_triggers.template_setters.verification }}
+                    .value {{ service?.email_triggers?.template_setters.verification }}
                     .actions(@click="copy")
                         Icon copy  
                 .emailGridItem
                     .name Signup Confirmation
-                    .value {{ service?.email_triggers.template_setters.signup_confirmation }}
+                    .value {{ service?.email_triggers?.template_setters.signup_confirmation }}
                     .actions(@click="copy")
                         Icon copy  
 
@@ -385,7 +389,8 @@ const settingGrid = reactive([
     },
 ]);
 
-// const emailGrid = computed(() => {return service.value.email_triggers.template_setters});
+const emailGrid = reactive({welcome: null, newsletter_subscription : null, verification : null, signup_confirmation : null});
+
 
 const edit = () => {
     if (!state.user.email_verified) return false;

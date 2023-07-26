@@ -57,33 +57,34 @@ template(v-else)
                     Icon mail
                     h2 Basic Email Triggers
             .emailGrid
-                //- .emailGridItem(v-for="(email, name) in emailGrid")
-                //-     .name {{ name }}
-                //-     .value 
-                //-         template(v-if="email == null") Loading...
-                //-         template(v-else) {{ email }}
-                //-     .actions(@click="copy")
-                //-         Icon copy   
-                .emailGridItem
-                    .name Welcome
-                    .value {{ service?.email_triggers?.template_setters.welcome }}
+                .emailGridItem(v-if="emailGrid" v-for="(email, name) in emailGrid")
+                    .name {{ name }}
+                    .value {{ email }}
                     .actions(@click="copy")
                         Icon copy   
-                .emailGridItem
-                    .name Newsletter Subscription
-                    .value {{ service?.email_triggers?.template_setters.newsletter_subscription }}
-                    .actions(@click="copy")
-                        Icon copy  
-                .emailGridItem
-                    .name Verification
-                    .value {{ service?.email_triggers?.template_setters.verification }}
-                    .actions(@click="copy")
-                        Icon copy  
-                .emailGridItem
-                    .name Signup Confirmation
-                    .value {{ service?.email_triggers?.template_setters.signup_confirmation }}
-                    .actions(@click="copy")
-                        Icon copy  
+                //- template(v-if="showEmail")
+                //-     .emailGridItem
+                //-         .name Welcome
+                //-         .value {{ service?.email_triggers?.template_setters?.welcome }}
+                //-         .actions(@click="copy")
+                //-             Icon copy   
+                //-     .emailGridItem
+                //-         .name Newsletter Subscription
+                //-         .value {{ service?.email_triggers?.template_setters?.newsletter_subscription }}
+                //-         .actions(@click="copy")
+                //-             Icon copy  
+                //-     .emailGridItem
+                //-         .name Verification
+                //-         .value {{ service?.email_triggers?.template_setters?.verification }}
+                //-         .actions(@click="copy")
+                //-             Icon copy  
+                //-     .emailGridItem
+                //-         .name Signup Confirmation
+                //-         .value {{ service?.email_triggers?.template_setters?.signup_confirmation }}
+                //-         .actions(@click="copy")
+                //-             Icon copy  
+                .fetching(v-else-if="fetchingEmail" style="text-align:center;")
+                    Icon.animationRotation refresh
 
     // email_triggers_newsletter
     .container 
@@ -136,7 +137,7 @@ template(v-else)
                             span Email System
                         .body Users are data that your service user's will store and read from your service database. 
                     .goto Go to Mail >
-                    
+
     // subdomain setting
     .container 
         .innerContainer 
@@ -151,13 +152,9 @@ template(v-else)
                 .titleWrapper
                     Icon domain
                     h2 Subdomain
-                .actionWrapper(v-if="service.subdomain && !deleting" :class="{'disabled': !state.user.email_verified ? true : null}")
-                    .actions(@click="setting404")
-                        Icon setting
-                        span setting
-                    .actions(@click="deleteSubdomainAsk" :class="{'active': !isEmpty}")
-                        Icon(style="width: 20px; height: 20px;") trash
-                        span Delete
+                .actions(v-if="service.subdomain && !deleting" @click="deleteSubdomainAsk" :class="{'disabled': (isEmpty || !state.user.email_verified) || null}")
+                    Icon(style="width: 20px; height: 20px;") trash
+                    span Delete
             .domainGrid(v-if="domain")
                 .domainGridItem
                     .name
@@ -166,6 +163,12 @@ template(v-else)
                         span {{ service.subdomain }}.skapi.com
                     a(:href="`http://${service.subdomain}.skapi.com`" target="_blank")
                         Icon link
+                .domainGridItem.btn(@click="setting404")
+                    Icon setting
+                    span(style="width: 100%; text-align:center;") Setting
+                .domainGridItem.btn
+                    Icon refresh
+                    span(style="width: 100%; text-align:center;") Refresh CDN
             .domainGrid.deleting(v-else-if="deleting") 
                 h3 Deleting subdomain ...
                 span It may take a few minutes for a subdomain to be deleted.
@@ -181,14 +184,12 @@ template(v-else)
                     .actions(@click="upload")
                         Icon pencil
                         span Upload
-                    .actions(@click="deleteFiles" :class="{'active': !isEmpty}")
+                    .actions(@click="deleteFiles" :class="{'disabled': (selectedFiles.length === 0 || !state.user.email_verified) || null}")
                         Icon(style="width: 20px; height: 20px;") trash
                         span Delete
             .filesContainer
                 .fetching(v-if="isFetching && !service?.files?.[service.subdomain+currentDirectory]?.list?.length" style="text-align:center;")
                     Icon.animationRotation refresh
-                //- .fetching(v-if='isFetching' v-for="t in numberOfSkeletons()" style="background: #656565; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; margin-top: 16px;")
-                //-     span &nbsp;
                 template(v-else-if="isEmpty")
                     div.noFiles
                         div.title No Files
@@ -206,13 +207,13 @@ template(v-else)
                                 .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
                                     sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
                                     Icon folder2
-                                    .path-wrapper(@click="getDirectory(currentDirectory+=file.name)")
+                                    .pathWrapper(@click="getDirectory(currentDirectory+=file.name)")
                                         span.path {{ file.name }}
                             .fileWrapper(v-else)
                                 .file(:class="{fade: isDeleting && selectedFiles.includes(service.subdomain + currentDirectory + file.name)}")
                                     sui-input(type="checkbox" :checked="selectedFiles.includes(service.subdomain + currentDirectory + file.name) || null" @change="checkboxHandler" :value="file.name")
                                     Icon file
-                                    a(:href="`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`" download).path-wrapper
+                                    .pathWrapper(@click="download(`https://${service.subdomain}.skapi.com${currentDirectory}${file.name}`);")
                                         span.path {{ file.name }}
 
     // overlay window
@@ -231,7 +232,7 @@ template(v-else)
     sui-overlay(v-if="isSetting404" ref="setting404Window" style="background: rgba(0, 0, 0, 0.6)" @mousedown="async()=>{await state.blockingPromise; setting404Window.close(()=>isSetting404 = false)}")
         div.overlay
             Setting404(@close="async()=>{await state.blockingPromise; setting404Window.close(()=>isSetting404 = false)}")
-            
+
 // delete window
 sui-overlay(ref="deleteConfirmOverlay")
     form.popup(@submit.prevent="deleteService" action="" :loading="isDisabled || null")
@@ -306,6 +307,8 @@ const isDeleting = ref(false);
 const isEmpty = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
+const showEmail = ref(false);
+const fetchingEmail = ref(false);
 
 const folderUpload = ref(null);
 const fileUpload = ref(null);
@@ -387,8 +390,7 @@ const settingGrid = reactive([
     },
 ]);
 
-const emailGrid = reactive({welcome: null, newsletter_subscription : null, verification : null, signup_confirmation : null});
-
+const emailGrid = computed(() => { return service.value.email_triggers.template_setters });
 
 const edit = () => {
     if (!state.user.email_verified) return false;
@@ -476,10 +478,10 @@ const getDirectory = (directory = '/') => {
             ]
         ) {
             service.value.files[
-            `${service.value.subdomain}${currentDirectory.value}`
+                `${service.value.subdomain}${currentDirectory.value}`
             ] = {
-            endOfList: files.endOfList,
-            list: [],
+                endOfList: files.endOfList,
+                list: [],
             };
         }
 
@@ -490,9 +492,9 @@ const getDirectory = (directory = '/') => {
         }
 
         files.list.forEach((file) => {
-            if(file.name !== service.value.subdomain + '/.cfacdb7c8270a90aba6011585793dfc3/' && file.name !== service.value.subdomain + '/cfacdb7c8270a90aba6011585793dfc3.html') {
+            if (file.name !== service.value.subdomain + '/.cfacdb7c8270a90aba6011585793dfc3/' && file.name !== service.value.subdomain + '/cfacdb7c8270a90aba6011585793dfc3.html') {
                 let filename = extractFileName(file.name);
-    
+
                 if (file.type === "folder") {
                     service.value.files[
                         `${service.value.subdomain}${currentDirectory.value}`
@@ -500,7 +502,7 @@ const getDirectory = (directory = '/') => {
                         name: filename,
                         type: "folder",
                     });
-                    } else {
+                } else {
                     service.value.files[
                         `${service.value.subdomain}${currentDirectory.value}`
                     ].list.push({
@@ -540,44 +542,44 @@ const deleteFiles = () => {
         keys: selectedFiles.value,
         service: service.value.service,
     })
-    .then(async(res) => {
-        selectedFiles.value.forEach((path) => {
-            const regex = /^.*?\//;
-            let result = path.replace(regex, "");
-            let pathArray = path.split("/");
-            let subdomain = pathArray[0];
-            let index;
+        .then(async (res) => {
+            selectedFiles.value.forEach((path) => {
+                const regex = /^.*?\//;
+                let result = path.replace(regex, "");
+                let pathArray = path.split("/");
+                let subdomain = pathArray[0];
+                let index;
 
-            if (result[result.length - 1] === "/") {
-                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
-                    return path.name === pathArray[pathArray.length - 2] + "/";
-                });
-            } else {
-                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
-                    return path.name === extractFileName(result);
-                });
-            }
-
-            service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
-
-            if (service.value.files[`${subdomain}${currentDirectory.value}`].list.length <= 0) {
-                let oldDirectory = currentDirectory.value;
-                let newDirectory = currentDirectory.value.split("/");
-                newDirectory.splice(-2);
-                currentDirectory.value = newDirectory.join("/") + "/";
-                let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
-                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
-                    return path.name === folderToDelete;
-                });
+                if (result[result.length - 1] === "/") {
+                    index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                        return path.name === pathArray[pathArray.length - 2] + "/";
+                    });
+                } else {
+                    index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                        return path.name === extractFileName(result);
+                    });
+                }
 
                 service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
-            }
-        });
 
-        isDeleting.value = false;
-        selectedFiles.value = [];
-        await getMoreDirectory();
-    });
+                if (service.value.files[`${subdomain}${currentDirectory.value}`].list.length <= 0) {
+                    let oldDirectory = currentDirectory.value;
+                    let newDirectory = currentDirectory.value.split("/");
+                    newDirectory.splice(-2);
+                    currentDirectory.value = newDirectory.join("/") + "/";
+                    let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
+                    index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                        return path.name === folderToDelete;
+                    });
+
+                    service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
+                }
+            });
+
+            isDeleting.value = false;
+            selectedFiles.value = [];
+            await getMoreDirectory();
+        });
 };
 
 const jumpto = (index) => {
@@ -599,13 +601,15 @@ const checkboxHandler = (e) => {
     if (e.target.checked) {
         selectedFiles.value.push(`${service.value.subdomain}/${e.target.value}`);
     } else {
-        selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`),1);
+        selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`), 1);
     }
+    
+    console.log(selectedFiles.value.length)
 };
 
 const currentDirectoryArray = computed(() => {
     selectedFiles.value = [];
-    return currentDirectory.value.split("/").reverse().filter((value) => {return value;});
+    return currentDirectory.value.split("/").reverse().filter((value) => { return value; });
 });
 
 const deleteService = () => {
@@ -613,7 +617,7 @@ const deleteService = () => {
     if (confirmationCode.value !== service.value.service) {
         confirmationCode.value = "";
         deleteErrorMessage.value = "Your service code did not match.";
-    if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         deleteErrorOverlay.value.open();
         isDisabled.value = false;
         return;
@@ -623,15 +627,15 @@ const deleteService = () => {
         if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
         router.replace("/admin");
     })
-    .catch(() => {
-        deleteErrorMessage.value ="Please disable your service before deleting it.";
-        if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
-        deleteErrorOverlay.value.open();
-    })
-    .finally(() => {
-        confirmationCode.value = "";
-        isDisabled.value = false;
-    });
+        .catch(() => {
+            deleteErrorMessage.value = "Please disable your service before deleting it.";
+            if (deleteConfirmOverlay.value) deleteConfirmOverlay.value.close();
+            deleteErrorOverlay.value.open();
+        })
+        .finally(() => {
+            confirmationCode.value = "";
+            isDisabled.value = false;
+        });
 };
 
 const deleteSubdomain = async () => {
@@ -639,7 +643,7 @@ const deleteSubdomain = async () => {
     if (confirmationCode.value !== service.value.subdomain) {
         confirmationCode.value = "";
         deleteErrorMessage.value = "Your subdomain name did not match.";
-    if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
+        if (deleteSubdomainOverlay.value) deleteSubdomainOverlay.value.close();
         deleteErrorOverlay.value.open();
         isDisabled.value = false;
         return;
@@ -670,9 +674,9 @@ const deleteSubdomain = async () => {
     }
 };
 
-const getMoreDirectory = async(directory) => {
+const getMoreDirectory = async (directory) => {
     let findingDirectory = service.value.subdomain + (directory ? directory : '/');
-    if(isFetching.value || service.value.files[findingDirectory].endOfList) return false;
+    if (isFetching.value || service.value.files[findingDirectory].endOfList) return false;
 
     let params = {
         service: service.value.service,
@@ -716,6 +720,17 @@ const scrollEvent = (e) => {
     if (scrollPosition <= container.scrollTop + 50) {
         getMoreDirectory(currentDirectory.value);
     }
+}
+
+const download = async (url) => {
+    let file = await skapi.getFile(
+        url,
+        {
+            dataType: 'download',
+            noCdn: true,
+            service: service.value.service
+        }
+    );
 }
 
 if (!service.value.hasOwnProperty("storage")) {
@@ -764,12 +779,12 @@ watch(() => service.value.subdomain,
     () => {
         if ("subdomain" in service.value) {
             if (service.value.subdomain.includes("*")) {
-            domain.value = false;
-            deleting.value = true;
+                domain.value = false;
+                deleting.value = true;
             } else {
-            domain.value = true;
-            deleting.value = false;
-            getDirectory();
+                domain.value = true;
+                deleting.value = false;
+                getDirectory();
             }
         } else {
             domain.value = false;
@@ -778,7 +793,7 @@ watch(() => service.value.subdomain,
     }
 );
 
-onBeforeMount(async() => {
+onBeforeMount(async () => {
     if ("subdomain" in service.value) {
         if (service.value.subdomain.includes("*")) {
             domain.value = false;
@@ -797,14 +812,14 @@ onBeforeMount(async() => {
 onMounted(() => {
     if (!service.value.hasOwnProperty('newsletter_triggers')) {
         service.value.newsletter_triggers = [];
-        for(let i=0; i<2; i++) {
+        for (let i = 0; i < 2; i++) {
             skapi.requestNewsletterSender(service.value.service, i).then((e) => {
                 service.value.newsletter_triggers.push(e);
             });
         }
     }
-    
 })
+
 </script>
 
 <style lang="less" scoped>
@@ -812,97 +827,84 @@ onMounted(() => {
     margin: 0 0 40px 0;
 
     .innerContainer {
-    padding: 40px;
-    background: #434343;
-    border-radius: 12px;
+        padding: 40px;
+        background: #434343;
+        border-radius: 12px;
 
-    .titleActionsWrapper {
-        margin-bottom: 32px;
+        .titleActionsWrapper {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 32px;
 
-        h2 {
-        font-size: 20px;
-        font-weight: normal;
-        }
-
-        .actionWrapper {
-        display: flex;
-        flex-wrap: nowrap;
-
-        .actions {
-            &:first-child {
-            margin-right: 20px;
+            h2 {
+                font-size: 20px;
+                font-weight: normal;
             }
-            &:last-child {
-            opacity: 0.5;
 
-            &.active {
-                opacity: 1;
+            .titleWrapper {
+                h2 {
+                    margin: 0;
+                }
+
+                svg {
+                    margin-right: 8px;
+                }
             }
+
+            .actionWrapper {
+                display: flex;
+                flex-wrap: nowrap;
+
+                .actions {
+                    opacity: 1;
+
+                    &:first-child {
+                        margin-right: 20px;
+                    }
+
+                    &.disabled {
+                        opacity: 0.4;
+                    }
+                }
             }
-        }
         }
     }
+
+    h2 {
+        color: rgba(255, 255, 255, 0.85);
+        display: inline-block;
+        vertical-align: middle;
+        font-size: 24px;
+        margin-bottom: 50px;
+        font-weight: bold;
     }
 
-    h2,
     p {
-    color: rgba(255, 255, 255, 0.85);
-    margin: 0;
-    }
-
-    h2 {
-    display: inline-block;
-    vertical-align: middle;
-    font-size: 24px;
-    margin-bottom: 50px;
-    font-weight: bold;
-    }
-
-    p {
-    color: rgba(255, 255, 255, 0.85);
-    line-height: 1.5;
-    }
-
-    .titleActionsWrapper {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 16px;
-
-    h2 {
-        font-size: 20px;
-        font-weight: normal;
-    }
-    }
-
-    .titleWrapper {
-    h2 {
+        color: rgba(255, 255, 255, 0.85);
+        line-height: 1.5;
         margin: 0;
     }
 
-    svg {
-        margin-right: 8px;
-    }
-    }
-
     .actions {
-    cursor: pointer;
-    user-select: none;
+        opacity: 1;
+        cursor: pointer;
+        user-select: none;
 
-    svg {
-        margin-right: 4px;
-    }
+        svg {
+            margin-right: 4px;
+        }
 
-    span {
-        vertical-align: middle;
-    }
+        span {
+            vertical-align: middle;
+        }
 
-    &.disabled {
-        opacity: 0.4;
-    }
+        &.disabled {
+            opacity: 0.4;
+        }
     }
 
     &:last-child {
-    margin-bottom: 0;
+        margin-bottom: 0;
     }
 }
 
@@ -913,19 +915,19 @@ onMounted(() => {
     row-gap: 28px;
 
     &Item {
-    min-width: 0;
+        min-width: 0;
 
-    .name {
-        font-size: 14px;
-        color: rgba(255, 255, 255, 0.6);
-        margin-bottom: 8px;
-    }
+        .name {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
 
-    .value {
-        font-weight: bold;
-        color: rgba(255, 255, 255, 0.85);
-        word-break: break-all;
-    }
+        .value {
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.85);
+            word-break: break-all;
+        }
     }
 }
 
@@ -934,20 +936,20 @@ onMounted(() => {
     justify-content: space-between;
 
     &Item {
-    .name {
-        font-size: 14px;
-        color: rgba(255, 255, 255, 0.6);
-        margin-bottom: 8px;
-    }
+        .name {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
 
-    .value {
-        font-weight: bold;
-        color: rgba(255, 255, 255, 0.85);
-    }
+        .value {
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.85);
+        }
 
-    &.span2 {
-        grid-column: span 2;
-    }
+        &.span2 {
+            grid-column: span 2;
+        }
     }
 }
 
@@ -958,31 +960,31 @@ onMounted(() => {
     grid-template-columns: repeat(4, calc(25% - 30px)) 72px;
 
     &Item {
-    .name {
-        font-size: 14px;
-        line-height: 1;
-        color: rgba(255, 255, 255, 0.6);
-        margin-bottom: 8px;
+        .name {
+            font-size: 14px;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
 
-        span {
-        vertical-align: middle;
+            span {
+                vertical-align: middle;
+            }
         }
-    }
 
-    .value {
-        font-weight: bold;
-        color: rgba(255, 255, 255, 0.85);
-        word-break: break-all;
+        .value {
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.85);
+            word-break: break-all;
 
-        span {
-        vertical-align: middle;
+            span {
+                vertical-align: middle;
+            }
         }
-    }
 
-    &.actions {
-        align-self: flex-end;
-        justify-self: flex-end;
-    }
+        &.actions {
+            align-self: flex-end;
+            justify-self: flex-end;
+        }
     }
 }
 
@@ -999,23 +1001,26 @@ onMounted(() => {
     opacity: 0.6;
 
     .title {
-    font-size: 28px;
+        font-size: 28px;
     }
 
     p {
-    font-size: 14px;
-    margin: 20px 0 0 0;
-    color: rgba(255, 255, 255, 0.4);
+        font-size: 14px;
+        margin: 20px 0 0 0;
+        color: rgba(255, 255, 255, 0.4);
     }
 }
+
 .emailGrid {
     &Item {
         margin-bottom: 20px;
         overflow: hidden;
         white-space: nowrap;
+
         &:last-child {
             margin-bottom: 0;
         }
+
         .value {
             width: calc(100% - 30px);
             white-space: nowrap;
@@ -1023,6 +1028,7 @@ onMounted(() => {
             text-overflow: ellipsis;
         }
     }
+
     .actions {
         position: absolute;
         right: 15px;
@@ -1031,50 +1037,74 @@ onMounted(() => {
     }
 }
 
-.domainGrid, .emailGrid {
+.domainGrid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px;
+
+    &Item.btn {
+        display: flex;
+        flex-wrap: wrap;
+        cursor: pointer;
+
+        svg {
+            margin-bottom: 10px;
+        }
+    }
+}
+
+.domainGrid,
+.emailGrid {
     &.deleting {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.4);
-    padding-bottom: 30px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.4);
+        padding-bottom: 30px;
 
-    h3 {
-        font-size: 28px;
-        font-weight: 500;
-        margin: 0 0 20px 0;
-    }
+        h3 {
+            font-size: 28px;
+            font-weight: 500;
+            margin: 0 0 20px 0;
+        }
 
-    span {
-        font-size: 14px;
-    }
+        span {
+            font-size: 14px;
+        }
     }
 
     &Item {
-    position: relative;
-    width: 100%;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 24px;
-    border-radius: 8px;
+        position: relative;
+        width: 100%;
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 24px;
+        border-radius: 8px;
 
-    .name {
-        font-size: 14px;
-        line-height: 1;
-        color: rgba(255, 255, 255, 0.6);
-        margin-bottom: 8px;
-    }
+        &.btn {
+            display: flex;
+            justify-content: center;
+            width: calc(50% - 10px);
+        }
 
-    .value {
-        font-weight: bold;
-        color: rgba(255, 255, 255, 0.85);
-        word-break: break-all;
-    }
+        .name {
+            font-size: 14px;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
 
-    a {
-        position: absolute;
-        top: 50%;
-        right: 24px;
-        transform: translateY(-50%);
-        color: #fff;
-    }
+        .value {
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.85);
+            word-break: break-all;
+        }
+
+        a {
+            position: absolute;
+            top: 50%;
+            right: 24px;
+            transform: translateY(-50%);
+            color: #fff;
+        }
     }
 }
 
@@ -1089,39 +1119,39 @@ onMounted(() => {
     height: 100px;
 
     sui-button {
-    vertical-align: middle;
+        vertical-align: middle;
     }
 
     &:only-child {
-    margin-bottom: 0;
+        margin-bottom: 0;
     }
 
-    & > div > * {
-    display: inline-block;
+    &>div>* {
+        display: inline-block;
 
-    &:first-child {
-        margin-right: 6px;
-    }
+        &:first-child {
+            margin-right: 6px;
+        }
 
-    &:last-child {
-        margin-left: 6px;
-    }
+        &:last-child {
+            margin-left: 6px;
+        }
     }
 
     svg {
-    height: 57px;
-    width: 57px;
-    color: rgba(255, 255, 255, 0.6);
+        height: 57px;
+        width: 57px;
+        color: rgba(255, 255, 255, 0.6);
     }
 
     .error {
-    color: #ff8d3b;
+        color: #ff8d3b;
 
-    svg {
-        height: 24px;
-        width: 24px;
-        fill: #ff8d3b;
-    }
+        svg {
+            height: 24px;
+            width: 24px;
+            fill: #ff8d3b;
+        }
     }
 }
 
@@ -1135,52 +1165,13 @@ onMounted(() => {
     border-radius: 8px;
 
     svg {
-    margin-right: 16px;
-    }
-
-    & > * {
-    flex-shrink: 0;
-    flex-grow: 0;
-    }
-
-    .pathWrapper {
-    display: inline-block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-    direction: rtl;
-    text-align: left;
-
-    .path {
-        unicode-bidi: plaintext;
+        margin-right: 16px;
         cursor: pointer;
     }
-    }
-}
 
-.directoryFiles {
-    max-height: 500px;
-    overflow: scroll;
-}
-
-.filesContainer {
-    .fileWrapper {
-    border-radius: 8px;
-
-    &:nth-child(even) {
-        background: #4a4a4a;
-    }
-    }
-
-    .file {
-    display: flex;
-    align-items: center;
-    height: 52px;
-    padding: 8px 20px;
-
-    &.fade {
-        opacity: 0.5;
+    &>* {
+        flex-shrink: 0;
+        flex-grow: 0;
     }
 
     .pathWrapper {
@@ -1192,59 +1183,100 @@ onMounted(() => {
         direction: rtl;
         text-align: left;
 
-        a {
-        color: #fff;
-        text-decoration: none;
-        }
-
         .path {
-        unicode-bidi: plaintext;
-        cursor: pointer;
+            unicode-bidi: plaintext;
+            cursor: pointer;
+        }
+    }
+}
+
+.directoryFiles {
+    max-height: 500px;
+    overflow: scroll;
+}
+
+.filesContainer {
+    .fileWrapper {
+        border-radius: 8px;
+
+        &:nth-child(even) {
+            background: #4a4a4a;
         }
     }
 
-    & > *:not(.pathWrapper) {
-        flex-shrink: 0;
-        flex-grow: 0;
-    }
+    .file {
+        display: flex;
+        align-items: center;
+        height: 52px;
+        padding: 8px 20px;
 
-    a {
-        display: inline-block;
-        vertical-align: middle;
-        width: calc(100% - 32px);
-        color: #fff;
-        text-decoration: none;
-        font-weight: normal;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        direction: rtl;
-        text-align: left;
-    }
+        &.fade {
+            opacity: 0.5;
+        }
 
-    & > sui-input,
-    & > svg {
-        margin-right: 16px;
-    }
+        .pathWrapper {
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            direction: rtl;
+            text-align: left;
+            cursor: pointer;
 
-    & > sui-input {
-        opacity: 0.5;
-    }
+            a {
+                color: #fff;
+                text-decoration: none;
+            }
+
+            .path {
+                unicode-bidi: plaintext;
+                cursor: pointer;
+            }
+        }
+
+        &>*:not(.pathWrapper) {
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        a {
+            display: inline-block;
+            vertical-align: middle;
+            width: calc(100% - 32px);
+            color: #fff;
+            text-decoration: none;
+            font-weight: normal;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+            text-align: left;
+        }
+
+        &>sui-input,
+        &>svg {
+            margin-right: 16px;
+        }
+
+        &>sui-input {
+            opacity: 0.5;
+        }
     }
 
     .noFiles {
-    padding: 12px 16px;
-    text-align: center;
-    border-radius: 8px;
+        padding: 12px 16px;
+        text-align: center;
+        border-radius: 8px;
 
-    .title {
-        font-size: 28px;
-    }
+        .title {
+            font-size: 28px;
+        }
 
-    .title,
-    p {
-        opacity: 0.4;
-    }
+        .title,
+        p {
+            opacity: 0.4;
+        }
     }
 }
 
@@ -1252,138 +1284,138 @@ onMounted(() => {
     margin: 28px -20px;
 
     .file {
-    display: flex;
-    align-items: center;
-    height: 52px;
-    padding: 8px 20px;
+        display: flex;
+        align-items: center;
+        height: 52px;
+        padding: 8px 20px;
 
-    .progressBar {
-        display: inline-block;
-        vertical-align: middle;
-        width: 20px;
-        height: 20px;
-        background: var(--progress);
-        border-radius: 50%;
-        position: relative;
-        margin-right: 16px;
+        .progressBar {
+            display: inline-block;
+            vertical-align: middle;
+            width: 20px;
+            height: 20px;
+            background: var(--progress);
+            border-radius: 50%;
+            position: relative;
+            margin-right: 16px;
 
-        .circle {
-        border: 1px solid white;
-        height: 20px;
-        width: 20px;
-        border-radius: 50%;
-        position: absolute;
-        opacity: 0;
+            .circle {
+                border: 1px solid white;
+                height: 20px;
+                width: 20px;
+                border-radius: 50%;
+                position: absolute;
+                opacity: 0;
 
-        & ~ .circle {
-            border: 1px solid white;
-            opacity: 0;
-        }
-        }
+                &~.circle {
+                    border: 1px solid white;
+                    opacity: 0;
+                }
+            }
 
-        &::before {
-        content: "";
-        position: absolute;
-        top: calc(50% - (15px / 2));
-        left: calc(50% - (15px / 2));
-        display: block;
-        width: 15px;
-        height: 15px;
-        border-radius: 50%;
-        background-color: #333;
-        }
+            &::before {
+                content: "";
+                position: absolute;
+                top: calc(50% - (15px / 2));
+                left: calc(50% - (15px / 2));
+                display: block;
+                width: 15px;
+                height: 15px;
+                border-radius: 50%;
+                background-color: #333;
+            }
 
-        &.started {
-        &::after {
-            position: absolute;
-            content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='20,5.78 18.22,4 12,10.22 5.78,4 4,5.78 10.22,12 4,18.22 5.78,20 12,13.78 18.22,20 20,18.22 13.78,12 ' fill='white'/%3E%3C/svg%3E");
-            top: 50%;
-            left: 50%;
-            transform: translate(-6px, -11px);
-        }
-        }
+            &.started {
+                &::after {
+                    position: absolute;
+                    content: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='20,5.78 18.22,4 12,10.22 5.78,4 4,5.78 10.22,12 4,18.22 5.78,20 12,13.78 18.22,20 20,18.22 13.78,12 ' fill='white'/%3E%3C/svg%3E");
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-6px, -11px);
+                }
+            }
 
-        &.complete {
-        .circle {
-            animation: ripple 0.5s ease;
+            &.complete {
+                .circle {
+                    animation: ripple 0.5s ease;
 
-            & ~ .circle {
-            animation: smallRipple 0.3s ease;
+                    &~.circle {
+                        animation: smallRipple 0.3s ease;
+                    }
+                }
+
+                &::before {
+                    top: 0;
+                    left: 0;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #5ad858;
+                    animation: bounce 0.2s ease;
+                }
+
+                &::after {
+                    position: absolute;
+                    content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.31,18.6L3,12.29l1.54-1.51l4.77,4.77L19.46,5.4L21,6.91L9.31,18.6z' fill='white'/%3E%3C/svg%3E");
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-9px, -9px);
+                }
+            }
+
+            &.failed {
+                &::before {
+                    top: 0;
+                    left: 0;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #f04e4e;
+                    animation: bounce 0.2s ease;
+                }
+
+                &::after {
+                    position: absolute;
+                    content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m10.88,3.45h2.17v11.95h-2.17V3.45Zm2.17,15.21v2.17h-2.17v-2.17h2.17Z' fill='white'/%3E%3C/svg%3E");
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-9px, -9px);
+                }
             }
         }
 
-        &::before {
-            top: 0;
-            left: 0;
-            width: 20px;
-            height: 20px;
-            background-color: #5ad858;
-            animation: bounce 0.2s ease;
+        &:nth-child(even) {
+            background: #4a4a4a;
+
+            .progressBar::before {
+                background-color: #4a4a4a;
+            }
+
+            .progressBar.complete::before {
+                background-color: #5ad858;
+            }
+
+            .progressBar.failed::before {
+                background-color: #f04e4e;
+            }
         }
 
-        &::after {
-            position: absolute;
-            content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.31,18.6L3,12.29l1.54-1.51l4.77,4.77L19.46,5.4L21,6.91L9.31,18.6z' fill='white'/%3E%3C/svg%3E");
-            top: 50%;
-            left: 50%;
-            transform: translate(-9px, -9px);
+        &>sui-input {
+            margin-right: 16px;
         }
-        }
-
-        &.failed {
-        &::before {
-            top: 0;
-            left: 0;
-            width: 20px;
-            height: 20px;
-            background-color: #f04e4e;
-            animation: bounce 0.2s ease;
-        }
-
-        &::after {
-            position: absolute;
-            content: url("data:image/svg+xml,%3Csvg width='15' height='15' viewBox='0 0 20 20' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m10.88,3.45h2.17v11.95h-2.17V3.45Zm2.17,15.21v2.17h-2.17v-2.17h2.17Z' fill='white'/%3E%3C/svg%3E");
-            top: 50%;
-            left: 50%;
-            transform: translate(-9px, -9px);
-        }
-        }
-    }
-
-    &:nth-child(even) {
-        background: #4a4a4a;
-
-        .progressBar::before {
-        background-color: #4a4a4a;
-        }
-
-        .progressBar.complete::before {
-        background-color: #5ad858;
-        }
-
-        .progressBar.failed::before {
-        background-color: #f04e4e;
-        }
-    }
-
-    & > sui-input {
-        margin-right: 16px;
-    }
     }
 
     .noFiles {
-    padding: 12px 16px;
-    text-align: center;
-    border-radius: 8px;
+        padding: 12px 16px;
+        text-align: center;
+        border-radius: 8px;
 
-    .title {
-        font-size: 28px;
-    }
+        .title {
+            font-size: 28px;
+        }
 
-    .title,
-    p {
-        opacity: 0.4;
-    }
+        .title,
+        p {
+            opacity: 0.4;
+        }
     }
 }
 
@@ -1393,50 +1425,50 @@ onMounted(() => {
     gap: 20px;
 
     &Item {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 24px;
-    border-radius: 8px;
-
-    .content {
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
+        justify-content: space-between;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 24px;
+        border-radius: 8px;
 
-        .title {
-        display: inline-block;
-        margin-bottom: 28px;
-        font-size: 20px;
+        .content {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
 
-        span {
-            margin-left: 8px;
-            vertical-align: middle;
+            .title {
+                display: inline-block;
+                margin-bottom: 28px;
+                font-size: 20px;
+
+                span {
+                    margin-left: 8px;
+                    vertical-align: middle;
+                }
+            }
+
+            .body {
+                color: rgba(255, 255, 255, 0.85);
+                line-height: 1.5;
+            }
         }
-        }
 
-        .body {
-        color: rgba(255, 255, 255, 0.85);
-        line-height: 1.5;
+        .goto {
+            text-align: left;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            text-decoration: none;
         }
-    }
-
-    .goto {
-        text-align: left;
-        margin-top: 40px;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
-        text-decoration: none;
-    }
     }
 
     a.serviceGridItem {
-    text-align: left;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 14px;
-    text-decoration: none;
+        text-align: left;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 14px;
+        text-decoration: none;
     }
 }
 
@@ -1455,11 +1487,11 @@ sui-tooltip {
     background: #d9d9d9;
     border: 0.3px solid #595959;
     box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.25),
-    inset 1px 1px 2px rgba(255, 255, 255, 0.65);
+        inset 1px 1px 2px rgba(255, 255, 255, 0.65);
     margin-right: 8px;
 
     &.active {
-    background: #5ad858;
+        background: #5ad858;
     }
 }
 
@@ -1467,29 +1499,29 @@ sui-tooltip {
     padding: 16px;
 
     .close {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 32px;
-    height: 32px;
-    background-color: #bfbfbf;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 32px;
+        height: 32px;
+        background-color: #bfbfbf;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
 
-    svg {
-        color: #434343;
-    }
+        svg {
+            color: #434343;
+        }
 
-    a {
-        text-align: left;
-        margin-top: 40px;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
-        text-decoration: none;
-    }
+        a {
+            text-align: left;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            text-decoration: none;
+        }
     }
 }
 </style>

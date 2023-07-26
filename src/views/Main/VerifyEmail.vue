@@ -11,8 +11,8 @@ form.form.container(@submit.prevent="verifyEmail" action="")
             template(v-if="secondsTillReady") Code has been sent
             template(v-else) Re-send Code
         .error(v-if="verificationCode.error")
-                Icon warning
-                span {{ verificationCode.error }}
+            Icon warning
+            span {{ verificationCode.error }}
     .actions
         sui-button.lineButton(type="button" @click="close" :disabled="promiseRunning") Cancel
         SubmitButton(:loading="promiseRunning") Verify

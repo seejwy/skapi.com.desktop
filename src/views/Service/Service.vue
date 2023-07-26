@@ -393,13 +393,6 @@ const settingGrid = reactive([
 
 const emailGrid = computed(() => { return service?.value?.email_triggers?.template_setters });
 
-// const emailGrid = computed(() => { 
-//     if(!service?.value?.email_triggers?.template_setters) {
-//         console.log('ddd')
-//     }
-//     return service?.value?.email_triggers?.template_setters 
-// });
-
 const edit = () => {
     if (!state.user.email_verified) return false;
     isEdit.value = true;
@@ -1239,6 +1232,7 @@ onMounted(() => {
 .filesContainer {
     .fileWrapper {
         border-radius: 8px;
+        cursor: pointer;
 
         &:nth-child(even) {
             background: #4a4a4a;

@@ -270,7 +270,7 @@ sui-overlay(ref="deleteErrorOverlay")
 
 <script setup>
 import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onBeforeUnmount, onMounted } from "vue";
-import { state, skapi, awaitConnection } from "@/main";
+import { state, skapi } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
 
@@ -645,6 +645,22 @@ const deleteService = () => {
 
 let intervalId;
 
+async function checkServiceStatus() {
+    console.log('start')
+    try {
+        console.log('getget');
+
+        if (!service.value.subdomain) {
+            console.log('dododo');
+            domain.value = false;
+            deleting.value = false;
+            clearInterval(intervalId);
+        }
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 const deleteSubdomain = async () => {
     isDisabled.value = true;
     if (confirmationCode.value !== service.value.subdomain) {
@@ -662,14 +678,8 @@ const deleteSubdomain = async () => {
             subdomain: service.value.subdomain,
             exec: "remove",
         }).then(() => {
-            if (service.value.subdomain.includes("*")) {
-                deleting.value = true;
-            } else {
-                deleting.value = false;
-            }
+            deleting.value = true;
             intervalId = setInterval(checkServiceStatus, 5000);
-        }).finally(() => {
-            
         });
     } catch (e) {
         deleteErrorMessage.value = e.message;
@@ -755,23 +765,6 @@ const refreshCDN = () => {
             isCDNRefreshing.value = false;
         });
     }
-}
-
-async function checkServiceStatus() {
-    console.log('eeeee')
-  try {
-    await awaitConnection;
-
-    if (!service.value.subdomain) {
-        console.log('dododo')
-        domain.value = false;
-        deleting.value = false;
-        clearInterval(intervalId);
-        await nextTick();
-    }
-  } catch (err) {
-    console.log(err);
-  }
 }
 
 if (!service.value.hasOwnProperty("storage")) {

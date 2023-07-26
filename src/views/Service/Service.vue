@@ -55,34 +55,42 @@ template(v-else)
             .titleActionsWrapper
                 .titleWrapper
                     Icon mail
-                    h2 Basic Email Triggers
+                    h2 Automated Emails
             .emailGrid
-                .emailGridItem(v-if="emailGrid" v-for="(email, name) in emailGrid")
-                    .name {{ name }}
-                    .value {{ email }}
-                    .actions(@click="copy")
-                        Icon copy   
+                p Automated emails are sent to your users when certain events occur.
+                p You can customize the content of these emails by sending your customized version of the email to the addresses below.
+                p
+                    |For more information refer the 
+                    a(href='https://docs.skapi.com/email') Documentation
+                br
+
+                //- .emailGridItem(v-if="emailGrid" v-for="(email, name) in emailGrid")
+                //-     .name {{ name }}
+                //-     .value {{ email }}
+                //-     .actions(@click="copy")
+                //-         Icon copy   
                 //- template(v-if="showEmail")
-                //-     .emailGridItem
-                //-         .name Welcome
-                //-         .value {{ service?.email_triggers?.template_setters?.welcome }}
-                //-         .actions(@click="copy")
-                //-             Icon copy   
-                //-     .emailGridItem
-                //-         .name Newsletter Subscription
-                //-         .value {{ service?.email_triggers?.template_setters?.newsletter_subscription }}
-                //-         .actions(@click="copy")
-                //-             Icon copy  
-                //-     .emailGridItem
-                //-         .name Verification
-                //-         .value {{ service?.email_triggers?.template_setters?.verification }}
-                //-         .actions(@click="copy")
-                //-             Icon copy  
-                //-     .emailGridItem
-                //-         .name Signup Confirmation
-                //-         .value {{ service?.email_triggers?.template_setters?.signup_confirmation }}
-                //-         .actions(@click="copy")
-                //-             Icon copy  
+                template(v-if="emailGrid")
+                    .emailGridItem
+                        .name Welcome
+                        .value {{ service?.email_triggers?.template_setters?.welcome }}
+                        .actions(@click="copy")
+                            Icon copy   
+                    .emailGridItem
+                        .name Verification
+                        .value {{ service?.email_triggers?.template_setters?.verification }}
+                        .actions(@click="copy")
+                            Icon copy  
+                    .emailGridItem
+                        .name Signup Confirmation
+                        .value {{ service?.email_triggers?.template_setters?.signup_confirmation }}
+                        .actions(@click="copy")
+                            Icon copy  
+                    .emailGridItem
+                        .name Newsletter Subscription
+                        .value {{ service?.email_triggers?.template_setters?.newsletter_subscription }}
+                        .actions(@click="copy")
+                            Icon copy
                 .fetching(v-else-if="fetchingEmail" style="text-align:center;")
                     Icon.animationRotation refresh
 
@@ -92,17 +100,23 @@ template(v-else)
             .titleActionsWrapper
                 .titleWrapper
                     Icon mail
-                    h2 Newsletter Email Triggers
+                    h2 Newsletters
             .emailGrid  
+                p By sending the newsletter email to the addresses below,
+                p You can send newsletters either to your public subscribers or your service users.
+                p
+                    | For more information refer the 
+                    a(href='https://docs.skapi.com/email') Documentation
+                br
                 .emailGridItem
-                    .name public newsletter_group0
+                    .name Public Newsletter
                     .value
                         template(v-if="service?.newsletter_triggers?.[0]") {{service?.newsletter_triggers?.[0]}}
                         template(v-else) Loading...
                     .actions(@click="copy")
                         Icon copy 
                 .emailGridItem
-                    .name user newsletter_group1
+                    .name Service User Newsletter
                     .value
                         template(v-if="service?.newsletter_triggers?.[1]") {{service?.newsletter_triggers?.[1]}}
                         template(v-else) Loading...

@@ -64,13 +64,12 @@ const save404 = () => {
             delete service.value[404];
             isDisabled.value = false;
         }
+        emit('close', '');
     }).catch((err) => {
         console.log(err);
         isDisabled.value = false;
         errorMessage.value = "File does not exist!";
         throw err;
-    }).finally(() => {
-        emit('close', '');
     })
 }
 </script>
@@ -107,6 +106,12 @@ const save404 = () => {
 
         sui-input {
             width: 100%;
+        }
+
+        .error {
+            margin-top: 10px;
+            text-align: left;
+            color: red;
         }
     }
 }

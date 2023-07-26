@@ -270,7 +270,7 @@ sui-overlay(ref="deleteErrorOverlay")
 
 <script setup>
 import { inject, reactive, ref, watch, nextTick, onBeforeMount, computed, onBeforeUnmount, onMounted } from "vue";
-import { state, skapi } from "@/main";
+import { state, skapi, awaitConnection } from "@/main";
 import { localeName, dateFormat, getSize } from "@/helper/common";
 import { useRoute, useRouter } from "vue-router";
 
@@ -473,7 +473,6 @@ const getDirectory = (directory = '/') => {
     isFetching.value = true;
 
     skapi.listHostDirectory(params).then((files) => {
-        console.log(files);
         if (!service.value.hasOwnProperty("files")) {
             service.value.files = {};
             isEmpty.value = true;
@@ -644,6 +643,8 @@ const deleteService = () => {
         });
 };
 
+let intervalId;
+
 const deleteSubdomain = async () => {
     isDisabled.value = true;
     if (confirmationCode.value !== service.value.subdomain) {
@@ -666,6 +667,7 @@ const deleteSubdomain = async () => {
             } else {
                 deleting.value = false;
             }
+            intervalId = setInterval(checkServiceStatus, 5000);
         }).finally(() => {
             
         });
@@ -753,6 +755,23 @@ const refreshCDN = () => {
             isCDNRefreshing.value = false;
         });
     }
+}
+
+async function checkServiceStatus() {
+    console.log('eeeee')
+  try {
+    await awaitConnection;
+
+    if (!service.value.subdomain) {
+        console.log('dododo')
+        domain.value = false;
+        deleting.value = false;
+        clearInterval(intervalId);
+        await nextTick();
+    }
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 if (!service.value.hasOwnProperty("storage")) {

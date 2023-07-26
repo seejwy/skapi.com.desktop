@@ -1034,4 +1034,25 @@ onBeforeRouteLeave((to, from) => {
 input {
     -webkit-appearance: none;
 }
+
+@media (max-width: 860px) {
+    .actionsWrapper {
+        padding-top: 40px;
+        position: relative;
+        flex-wrap: wrap;
+
+        form {
+            width: 100%;
+
+            .selectInput {
+                width: calc(100% - 168px);
+            }
+        }
+        .actions {
+            position: absolute;
+            top: -8px;
+            right: 0;
+        }
+    }
+}
 </style>

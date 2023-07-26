@@ -39,7 +39,7 @@
                 span Records
 
             //- router-link(to='/')
-                //(:to="{name: 'mail'}")
+            //(:to="{name: 'mail'}")
             //- Icon mail
 </template>
 
@@ -69,7 +69,7 @@
         top: 0;
         transition: width .2s cubic-bezier(1, 0, 0, 1);
         max-width: 170px;
-        
+
         &>* {
             display: inline-block;
             color: #fff;
@@ -111,13 +111,15 @@
                 line-height: 24px;
             }
         }
-            
+
         a {
             white-space: nowrap;
-            span {    
+
+            span {
                 vertical-align: middle;
             }
         }
+
         &:hover {
             flex-shrink: 0;
             width: 170px;
@@ -125,6 +127,7 @@
             .logo {
                 display: none;
             }
+
             .hoverLogo {
                 display: block;
                 height: 35px;
@@ -139,10 +142,12 @@
                 border-radius: 4px;
                 padding: 14px 8px;
                 border-radius: 0;
+
                 &:hover {
 
                     background: rgba(255, 255, 255, .2);
-                    span{
+
+                    span {
                         font-weight: bold;
                     }
                 }
@@ -152,11 +157,97 @@
                 display: inline-block;
             }
         }
-        
+
     }
 
     .sideScreen {
         flex-grow: 1;
+    }
+}
+
+@media (max-width: 1024px) {
+    .servicePageShell {
+        display: block;
+
+        .sidebar {
+            height: unset;
+            width: unset;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            min-height: unset;
+            flex-wrap: wrap;
+            bottom: 0px;
+            position: fixed;
+            top: unset;
+            left: 0;
+            right: 0;
+            max-width: unset;
+
+            &>* {
+                display: inline-block;
+                color: #fff;
+            }
+
+            & .logo {
+                display: none;
+            }
+
+            &>a {
+                width: 36px;
+                height: 36px;
+                margin: 12px 16px;
+            }
+
+            a {
+                white-space: nowrap;
+
+                span {
+                    vertical-align: middle;
+                }
+            }
+
+            &:hover {
+                flex-shrink: unset;
+                width: unset;
+
+                .logo {
+                    display: none;
+                }
+
+                .hoverLogo {
+                    display: none;
+                }
+
+                a {
+                    background: transparent;
+                    display: unset;
+                    width: 36px;
+                    margin: 12px 16px;
+                    border-radius: unset;
+                    padding: unset;
+                    border-radius: unset;
+
+                    &:hover {
+                        border-radius: 4px;
+                        background: rgba(255, 255, 255, 0.2);;
+
+                        span {
+                            font-weight: unset;
+                        }
+                    }
+                }
+
+                a span {
+                    display: none;
+                }
+            }
+
+        }
+
+        .sideScreen {
+            flex-grow: 1;
+        }
     }
 }
 </style>
@@ -189,8 +280,8 @@ pageTitle.value = ' ';
 let overlay = ref(null);
 
 onMounted(() => {
-    awaitConnection.then(()=>{
-        if(!state.user) {
+    awaitConnection.then(() => {
+        if (!state.user) {
             overlay.value.open();
         }
         recordTables.value = null;
@@ -208,16 +299,18 @@ function getServices(gs) {
     }
 
     gs.then(services => {
+        console.log(services)
         let region = skapi.region_list?.[serviceId.substring(0, 4)];
         if (!region) {
             // region does not exists
             service.value = 404
             return;
         }
-        if(services[region]) {
+        if (services[region]) {
             for (let s of services[region]) {
                 if (s.service === serviceId) {
                     service.value = s;
+                    get404();
                     return s;
                 }
             }
@@ -229,6 +322,19 @@ function getServices(gs) {
 }
 
 getServices(state.getServices);
+
+const get404 = () => {
+    if (service.value?.subdomain && service.value?.subdomain?.[0] !== '*') {
+        skapi.listHostDirectory({ service: service.value.service, dir: '.cfacdb7c8270a90aba6011585793dfc3/*' }).then((res) => {
+            if (res.list.length) {
+                let path = res.list[0].name.split('/');
+                path.shift();
+                path.shift();
+                service.value[404] = path.join('/');
+            }
+        })
+    }
+}
 
 // watch is for users visiting the page directly
 watch(() => state.getServices, getServices);

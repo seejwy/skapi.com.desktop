@@ -6,45 +6,50 @@ div(v-else-if="state?.user" :loading="isSaving || null")
         h1.fixed Account Settings
     .settingsWrapper
         form.settings(@submit.prevent="updateUserSettings" @keydown.enter.prevent="" action="")
-            .title Name
-            .value
-                sui-input(v-if="isEdit" type="text" @input="(e) => settings.name = e.target.value" :value="settings.name")
-                span(v-else) {{  state.user.name }}
-            .actions
+            .setting
+                .title Name
+                .value
+                    sui-input(v-if="isEdit" type="text" @input="(e) => settings.name = e.target.value" :value="settings.name")
+                    span(v-else) {{  state.user.name }}
+                //- .actions
             hr
-            .title(style="margin-bottom: 0;") Email
-            .value
-                sui-input(
-                    v-if="isEdit" 
-                    type="text" 
-                    :value="settings.email" 
-                    @input="(e)=> { settings.email = e.target.value; e.target.setCustomValidity(''); }" 
-                    @change="validateEmail"
-                    inputmode="email")
-                template(v-else)
-                    span {{  state.user.email }}
-                    .emailStatus(:class="{'unverified': !state.user.email_verified ? true : null, 'verified': state.user.email_verified ? true : null}")
-                        Icon warning
-                        span(v-if="state.user.email_verified") Verified
-                        span(v-else) Unverified
-            .actions(v-if="!state.user.email_verified" @click="openVerifyEmail")
-                span Verify Email
+            .setting
+                .title(style="margin-bottom: 0;") Email
+                .value
+                    sui-input(
+                        v-if="isEdit" 
+                        type="text" 
+                        :value="settings.email" 
+                        @input="(e)=> { settings.email = e.target.value; e.target.setCustomValidity(''); }" 
+                        @change="validateEmail"
+                        inputmode="email")
+                    template(v-else)
+                        span {{  state.user.email }}
+                        .emailStatus(:class="{'unverified': !state.user.email_verified ? true : null, 'verified': state.user.email_verified ? true : null}")
+                            Icon warning
+                            span(v-if="state.user.email_verified") Verified
+                            span(v-else) Unverified
+                .actions(v-if="!state.user.email_verified" @click="openVerifyEmail")
+                    span Verify Email
             hr   
-            .title Newsletter Subscription
-            .value
-                template(v-if="isEdit")
-                    label
-                        sui-input(type="checkbox" :disabled="!state.user.email_verified ? true : null" :checked="settings.email_subscription ? true : null" @change="(e) => settings.email_subscription = e.target.checked")
-                        span I agree to receive information and news letters from Skapi via Email.
-                template(v-else-if="settings.email_subscription !== ''")
-                    template(v-if="settings.email_subscription") Subscribed
-                        span(v-if="!state.user.email_verified" style="margin-left: 10px; color: #FF8D3B;")   ( Needs Verification )
-                    template(v-else) Not Subscribed
+            .setting
+                .title Newsletter Subscription
+                //- .value(style="width: calc(100% - 200px);")
+                .value
+                    template(v-if="isEdit")
+                        label
+                            sui-input(type="checkbox" :disabled="!state.user.email_verified ? true : null" :checked="settings.email_subscription ? true : null" @change="(e) => settings.email_subscription = e.target.checked")
+                            span I agree to receive information and news letters from Skapi via Email.
+                    template(v-else-if="settings.email_subscription !== ''")
+                        template(v-if="settings.email_subscription") Subscribed
+                            span(v-if="!state.user.email_verified" style="margin-left: 10px; color: #FF8D3B;")   ( Needs Verification )
+                        template(v-else) Not Subscribed
             hr
-            .title(style="margin-bottom: 0;") Password
-            .value
-            .actions
-                span(@click="() => { if(isSaving) return false; passwordOverlay.open()}") Change Password
+            .setting
+                .title(style="margin-bottom: 0;") Password
+                //- .value
+                .actions
+                    span(@click="() => { if(isSaving) return false; passwordOverlay.open()}") Change Password
             hr
             .submit
                 template(v-if="isEdit")
@@ -226,100 +231,193 @@ watch(() => state.user, async (user) => {
     }
 }
 
+// .settings {
+//     display: grid;
+//     grid-template-columns: auto 1fr min-content;
+//     align-items: center;
+//     column-gap: 80px;
+
+//     &>.title {
+//         font-weight: bold;
+//         padding: 28px 0;
+//         color: rgba(0, 0, 0, .65);
+//         white-space: nowrap;
+//     }
+
+//     .value {
+//         &>span {
+//             display: inline-block;
+//             margin-right: 8px;
+//         }
+//     }
+
+//     .emailStatus {
+//         display: inline-block;
+
+//         span {
+//             vertical-align: middle;
+//         }
+
+//         svg {
+//             margin-right: 4px;
+//         }
+
+//         &.verified {
+//             color: #5AD858;
+//         }
+
+//         &.unverified {
+//             color: #FF8D3B;
+//         }
+//     }
+
+//     .actions {
+//         justify-self: end;
+//         color: var(--primary-color);
+//         font-weight: bold;
+//         cursor: pointer;
+//         white-space: nowrap;
+
+//         .save,
+//         .cancel {
+//             display: inline-block;
+//             font-weight: bold;
+//         }
+
+//         .cancel {
+//             margin-right: 28px;
+//             color: #F04E4E;
+//         }
+//     }
+
+//     .value {
+//         label {
+//             display: flex;
+//             gap: 7px;
+
+//             sui-input {
+//                 flex-shrink: 0;
+//                 margin-top: calc((1.5em - 16px) / 2);
+//             }
+
+//             span {
+//                 line-height: 1.5;
+//             }
+//         }
+
+//         .actions {
+//             text-align: right;
+//             margin-top: 28px;
+//         }
+
+//         &>sui-input {
+//             width: 100%;
+//         }
+//     }
+
+//     hr {
+//         grid-column: span 3;
+//         width: 100%;
+//         border: 1px solid rgba(0, 0, 0, 0.04);
+//         box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.06);
+//     }
+
+//     .submit {
+//         grid-column: span 3;
+//         justify-self: end;
+//         padding-top: 28px;
+//     }
+// }
+
 .settings {
-    display: grid;
-    grid-template-columns: auto 1fr min-content;
-    align-items: center;
-    column-gap: 80px;
-
-    &>.title {
-        font-weight: bold;
-        padding: 28px 0;
-        color: rgba(0, 0, 0, .65);
-        white-space: nowrap;
-    }
-
-    .value {
-        &>span {
-            display: inline-block;
-            margin-right: 8px;
-        }
-    }
-
-    .emailStatus {
-        display: inline-block;
-
-        span {
-            vertical-align: middle;
-        }
-
-        svg {
-            margin-right: 4px;
-        }
-
-        &.verified {
-            color: #5AD858;
-        }
-
-        &.unverified {
-            color: #FF8D3B;
-        }
-    }
-
-    .actions {
-        justify-self: end;
-        color: var(--primary-color);
-        font-weight: bold;
-        cursor: pointer;
-        white-space: nowrap;
-
-        .save,
-        .cancel {
+    .setting {
+        &>.title {
+            min-width: 200px;
             display: inline-block;
             font-weight: bold;
+            padding: 28px 0;
+            color: rgba(0, 0, 0, .65);
+            white-space: nowrap;
         }
-
-        .cancel {
-            margin-right: 28px;
-            color: #F04E4E;
-        }
-    }
-
-    .value {
-        label {
-            display: flex;
-            gap: 7px;
-
-            sui-input {
-                flex-shrink: 0;
-                margin-top: calc((1.5em - 16px) / 2);
+        .value {
+            width: calc(100% - 320px);
+            display: inline-block;
+            &>span {
+                margin-right: 8px;
             }
-
+        }
+        .emailStatus {
+            display: inline-block;
+    
             span {
-                line-height: 1.5;
+                vertical-align: middle;
+            }
+    
+            svg {
+                margin-right: 4px;
+            }
+    
+            &.verified {
+                color: #5AD858;
+            }
+    
+            &.unverified {
+                color: #FF8D3B;
             }
         }
-
         .actions {
+            width: calc(100%-200px);
             text-align: right;
-            margin-top: 28px;
+            min-width: 100px;
+            display: inline-block;
+            color: var(--primary-color);
+            font-weight: bold;
+            cursor: pointer;
+            // white-space: nowrap;
+    
+            .save,
+            .cancel {
+                display: inline-block;
+                font-weight: bold;
+            }
+    
+            .cancel {
+                margin-right: 28px;
+                color: #F04E4E;
+            }
         }
-
-        &>sui-input {
-            width: 100%;
+        .value {
+            label {
+                display: flex;
+                gap: 7px;
+    
+                sui-input {
+                    flex-shrink: 0;
+                    margin-top: calc((1.5em - 16px) / 2);
+                }
+    
+                span {
+                    line-height: 1.5;
+                }
+            }
+    
+            .actions {
+                text-align: right;
+                margin-top: 28px;
+            }
+    
+            &>sui-input {
+                width: 100%;
+            }
         }
     }
-
     hr {
-        grid-column: span 3;
         width: 100%;
         border: 1px solid rgba(0, 0, 0, 0.04);
         box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.06);
     }
-
     .submit {
-        grid-column: span 3;
-        justify-self: end;
+        text-align: right;
         padding-top: 28px;
     }
 }
@@ -335,4 +433,36 @@ watch(() => state.user, async (user) => {
         margin-left: 16px;
     }
 }
+
+@media (max-width: 768px) {
+    .settingsWrapper {
+        background-color: unset;
+        padding: 0;
+    }
+}  
+
+@media (max-width: 700px) {
+    .settingsWrapper.delete {
+        padding: 0;
+    }
+    .settings {
+        .setting {
+            position: relative;
+            padding: 20px 0;
+            &>.title {
+                width: 100%;
+                padding: 0;
+            }
+            .value {
+                width: 100%;
+                padding-top: 20px;
+            }
+            .actions {
+                position: absolute;
+                right: 0px;
+                top: 20px;
+            }
+        }
+    }
+}  
 </style> 

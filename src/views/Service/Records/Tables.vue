@@ -440,6 +440,7 @@ onBeforeUnmount(() => {
     }
 
     .tableHead {
+        height: 48px;
         background: #656565;
         border-radius: 4px;
         padding: 12px 16px;

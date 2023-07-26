@@ -19,7 +19,7 @@ form.container.login(@submit.prevent="login" action="" :loading="promiseRunning 
         label
             sui-input(type="checkbox" 
                 @input="(e)=>rememberme = e.target.checked"
-                :checked="rememberme ? true : null")
+                :checked="true")
             span Stay logged in
         RouterLink(:to="{name: 'forgotpassword'}") Forgot Email & Password?
     .error(v-if="error")

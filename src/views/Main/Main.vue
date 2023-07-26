@@ -86,6 +86,7 @@ const noLoginNeeded = () => {
             case 'home':
             case 'deleted':
             case 'sample':
+            case 'notFound':
                 return true;
         }
 

@@ -666,6 +666,8 @@ const deleteSubdomain = async () => {
             } else {
                 deleting.value = false;
             }
+        }).finally(() => {
+            
         });
     } catch (e) {
         deleteErrorMessage.value = e.message;
@@ -806,7 +808,7 @@ watch(() => service.value.subdomain,
                 deleting.value = false;
                 getDirectory();
             }
-        } else {
+        } else if (!service.value.hasOwnProperty("subdomain")) {
             domain.value = false;
             deleting.value = false;
         }
@@ -1077,11 +1079,10 @@ onMounted(() => {
             text-align:center;
         }
     }
-}
 
-.domainGrid,
-.emailGrid {
     &.deleting {
+        display: block;
+        justify-content: unset;
         text-align: center;
         color: rgba(255, 255, 255, 0.4);
         padding-bottom: 30px;
@@ -1096,7 +1097,10 @@ onMounted(() => {
             font-size: 14px;
         }
     }
+}
 
+.domainGrid,
+.emailGrid {
     &Item {
         position: relative;
         width: 100%;

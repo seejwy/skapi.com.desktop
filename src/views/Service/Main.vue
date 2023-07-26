@@ -208,40 +208,38 @@
             }
 
             &:hover {
-                flex-shrink: 0;
-                width: 170px;
+                flex-shrink: unset;
+                width: unset;
 
                 .logo {
                     display: none;
                 }
 
                 .hoverLogo {
-                    display: block;
-                    height: 35px;
-                    margin: 14px 14px 11px 14px;
+                    display: none;
                 }
 
                 a {
                     background: transparent;
-                    display: block;
-                    width: 100%;
-                    margin: 0;
-                    border-radius: 4px;
-                    padding: 14px 8px;
-                    border-radius: 0;
+                    display: unset;
+                    width: 36px;
+                    margin: 12px 16px;
+                    border-radius: unset;
+                    padding: unset;
+                    border-radius: unset;
 
                     &:hover {
-
-                        background: rgba(255, 255, 255, .2);
+                        border-radius: 4px;
+                        background: rgba(255, 255, 255, 0.2);;
 
                         span {
-                            font-weight: bold;
+                            font-weight: unset;
                         }
                     }
                 }
 
                 a span {
-                    display: inline-block;
+                    display: none;
                 }
             }
 
@@ -301,6 +299,7 @@ function getServices(gs) {
     }
 
     gs.then(services => {
+        console.log(services)
         let region = skapi.region_list?.[serviceId.substring(0, 4)];
         if (!region) {
             // region does not exists

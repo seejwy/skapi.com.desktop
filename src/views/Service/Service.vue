@@ -64,12 +64,6 @@ template(v-else)
                     a(href='https://docs.skapi.com/email') Documentation
                 br
 
-                //- .emailGridItem(v-if="emailGrid" v-for="(email, name) in emailGrid")
-                //-     .name {{ name }}
-                //-     .value {{ email }}
-                //-     .actions(@click="copy")
-                //-         Icon copy   
-                //- template(v-if="showEmail")
                 template(v-if="emailGrid")
                     .emailGridItem
                         .name Welcome
@@ -1053,6 +1047,13 @@ onMounted(() => {
 }
 
 .emailGrid {
+    p {
+        color: rgba(255,255,255,0.7);
+
+        a {
+            color: #fff;
+        }
+    }
     &Item {
         margin-bottom: 20px;
         overflow: hidden;

@@ -174,6 +174,9 @@ template(v-else)
                 .domainGridItem.btn(@click="setting404")
                     Icon setting
                     span Setting
+                .domainGridItem.btn(@click="upload")
+                    Icon file
+                    span Upload file
                 .domainGridItem.btn(@click="refreshCDN")
                     Icon(:class="{'animationRotation': isCDNRefreshing}") refresh
                     span Refresh CDN
@@ -188,13 +191,9 @@ template(v-else)
                 .titleWrapper
                     Icon list
                     h2 File List
-                .actionWrapper
-                    .actions(@click="upload")
-                        Icon pencil
-                        span Upload
-                    .actions(@click="deleteFiles" :class="{'disabled': (selectedFiles.length === 0 || !state.user.email_verified) || null}")
-                        Icon(style="width: 20px; height: 20px;") trash
-                        span Delete
+                .actions(@click="deleteFiles" :class="{'disabled': (selectedFiles.length === 0 || !state.user.email_verified) || null}")
+                    Icon(style="width: 20px; height: 20px;") trash
+                    span Delete
             .filesContainer
                 .fetching(v-if="isFetching && !service?.files?.[service.subdomain+currentDirectory]?.list?.length" style="text-align:center;")
                     Icon.animationRotation refresh
@@ -1085,19 +1084,24 @@ onMounted(() => {
     justify-content: space-between;
     gap: 20px;
 
-    &Item.btn {
-        display: flex;
-        flex-wrap: wrap;
-        cursor: pointer;
+    &Item{
+        &.btn {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: calc(33% - 13px);
+            cursor: pointer;
 
-        svg {
-            margin-bottom: 10px;
+            svg {
+                margin-bottom: 10px;
+            }
+    
+            span {
+                width: 100%;
+                text-align:center;
+            }
         }
 
-        span {
-            width: 100%;
-            text-align:center;
-        }
     }
 
     &.deleting {
@@ -1127,12 +1131,6 @@ onMounted(() => {
         background-color: rgba(255, 255, 255, 0.1);
         padding: 24px;
         border-radius: 8px;
-
-        &.btn {
-            display: flex;
-            justify-content: center;
-            width: calc(50% - 10px);
-        }
 
         .name {
             font-size: 14px;

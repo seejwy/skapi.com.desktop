@@ -152,7 +152,7 @@ template(v-else)
                 .titleWrapper
                     Icon domain
                     h2 Subdomain
-                .actions(v-if="service.subdomain && !deleting" @click="deleteSubdomainAsk" :class="{'disabled': (isEmpty || !state.user.email_verified) || null}")
+                .actions(v-if="service.subdomain && !deleting" @click="deleteSubdomainAsk" :class="{'disabled': !state.user.email_verified || null}")
                     Icon(style="width: 20px; height: 20px;") trash
                     span Delete
             .domainGrid(v-if="domain")
@@ -165,10 +165,10 @@ template(v-else)
                         Icon link
                 .domainGridItem.btn(@click="setting404")
                     Icon setting
-                    span(style="width: 100%; text-align:center;") Setting
-                .domainGridItem.btn
-                    Icon refresh
-                    span(style="width: 100%; text-align:center;") Refresh CDN
+                    span Setting
+                .domainGridItem.btn(@click="refreshCDN")
+                    Icon(:class="{'animationRotation': isCDNRefreshing}") refresh
+                    span Refresh CDN
             .domainGrid.deleting(v-else-if="deleting") 
                 h3 Deleting subdomain ...
                 span It may take a few minutes for a subdomain to be deleted.
@@ -305,6 +305,7 @@ const isDisabled = ref(false);
 const isFetching = ref(false);
 const isDeleting = ref(false);
 const isEmpty = ref(false);
+const isCDNRefreshing = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
 const showEmail = ref(false);
@@ -390,7 +391,14 @@ const settingGrid = reactive([
     },
 ]);
 
-const emailGrid = computed(() => { return service.value.email_triggers.template_setters });
+const emailGrid = computed(() => { return service?.value?.email_triggers?.template_setters });
+
+// const emailGrid = computed(() => { 
+//     if(!service?.value?.email_triggers?.template_setters) {
+//         console.log('ddd')
+//     }
+//     return service?.value?.email_triggers?.template_setters 
+// });
 
 const edit = () => {
     if (!state.user.email_verified) return false;
@@ -603,8 +611,6 @@ const checkboxHandler = (e) => {
     } else {
         selectedFiles.value.splice(selectedFiles.value.indexOf(`${service.value.subdomain}/${e.target.value}`), 1);
     }
-    
-    console.log(selectedFiles.value.length)
 };
 
 const currentDirectoryArray = computed(() => {
@@ -731,6 +737,20 @@ const download = async (url) => {
             service: service.value.service
         }
     );
+}
+
+const refreshCDN = () => {
+    if (!isCDNRefreshing.value) {
+        isCDNRefreshing.value = true;
+        skapi.refreshCDN({
+            service: service.value.service,
+            subdomain: service.value.subdomain
+        }).catch((e) => {
+            console.log({ e });
+        }).finally(() => {
+            isCDNRefreshing.value = false;
+        });
+    }
 }
 
 if (!service.value.hasOwnProperty("storage")) {
@@ -1050,6 +1070,11 @@ onMounted(() => {
 
         svg {
             margin-bottom: 10px;
+        }
+
+        span {
+            width: 100%;
+            text-align:center;
         }
     }
 }

@@ -8,7 +8,7 @@ template(v-else)
             Simply connect to your service and start building your website.      
 
         div.action
-            a(href="https://docs.skapi.com/the-basics/#connecting-to-your-service" target="_blank")
+            a(href="https://docs.skapi.com/getting-started/" target="_blank")
                 sui-button.lineButton(type="button") Find out More
 
     // service information

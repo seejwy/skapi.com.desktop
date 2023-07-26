@@ -441,7 +441,7 @@ const onDrop = (event) => {
 .filesContainer {
   width: 49%;
   max-height: 300px;
-  overflow: scroll;
+  overflow-y: auto;
   margin: 28px 0px;
 
   .file {

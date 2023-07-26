@@ -8,7 +8,7 @@ let desktopMedia = '(min-width: 769px)';
 const desktopSize = window.matchMedia(desktopMedia);
 const isMobileDevice = /Mobile|Android|iPhone|iPad|Windows Phone/i.test(navigator.userAgent);
 
-if(!desktopSize.matches && isMobileDevice) {
+if (!desktopSize.matches && isMobileDevice) {
     window.location.href = 'http://m.happybears.camp';
 } else {
     // init state
@@ -28,10 +28,15 @@ if(!desktopSize.matches && isMobileDevice) {
     // init skapi
     skapi = new Admin();
 
-    awaitConnection = skapi.getConnection().then(c => {
-        state.connection = c;
-        state.user = skapi.user;
-    });
+    // awaitConnection = skapi.getConnection().then(c => {
+    //     state.connection = c;
+    //     state.user = skapi.user;
+    // });
+
+    awaitConnection = skapi.getProfile({ refreshToken: true }).then(u => {
+        state.connection = skapi.connection;
+        state.user = u;
+    }).catch(err => err);
 
     watch(() => state.user, user => {
         if (user) {

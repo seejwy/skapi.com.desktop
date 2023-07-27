@@ -12,12 +12,12 @@
         div
             Icon attached
             span(style="margin-right: 6px;") Drag and Drop Folders or Files here
-        template(v-if="service.files")
+        template(v-if="service.files" style="padding:10px 0;")
             label(v-for="(url, name) in service?.files" style="border-radius: 12px; margin-top: 8px; padding: 8px 12px; background: #656565")
                 sui-input(type="checkbox")
                     a(:href="url" download) {{ name }}{{ name }}
         template(v-else)
-            div.noFiles
+            div.noFiles(style="display:flex; flex-wrap:wrap;")
                 div.title No Files
                 p You have not uploaded any files
         br
@@ -32,7 +32,7 @@
                 .pathWrapper
                     span.path {{ path }}
         template(v-else)
-            div.noFiles
+            div.noFiles(style="display:flex; flex-wrap:wrap;")
                 div.title No Files
                 p You have not uploaded any files
     .uploadBtn
@@ -254,10 +254,10 @@ const uploadFiles = async () => {
             fileList.value[e.currentFile.name].currentProgress = 0;
           if (!interval) {
             interval = setInterval(() => {
-              // console.log({
-              //   fileName: fileList.value[e.currentFile.name].file.name,
-              //   progress: fileList.value[e.currentFile.name].currentProgress,
-              // });
+              console.log({
+                fileName: fileList.value[e.currentFile.name].file.name,
+                progress: fileList.value[e.currentFile.name].currentProgress,
+              });
               try {
                 if (
                   fileList.value[e.currentFile.name].currentProgress < progress
@@ -395,6 +395,7 @@ const onDrop = (event) => {
 
 .fileUploadArea {
   width: 49%;
+  height: 300px;
   margin-right: 2%;
   padding: 30px;
   display: flex;
@@ -442,9 +443,9 @@ const onDrop = (event) => {
 
 .filesContainer {
   width: 49%;
-  max-height: 300px;
+  height: 300px;
+  overflow-x: hidden;
   overflow-y: auto;
-  margin: 28px 0px;
 
   .file {
     display: flex;
@@ -582,11 +583,15 @@ const onDrop = (event) => {
   }
 
   .noFiles {
-    padding: 90px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     border-radius: 8px;
 
     .title {
+      width: 100%;
       font-size: 28px;
     }
 

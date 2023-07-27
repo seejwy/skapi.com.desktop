@@ -17,9 +17,9 @@ import { state, skapi } from '@/main';
 import Icon from '@/components/Icon.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 
-let service = inject('service');
 const emit = defineEmits(['close']);
 
+let service = inject('service');
 let isDisabled = ref(false);
 const errorFile = ref(service.value[404]);
 const errorMessage = ref('');

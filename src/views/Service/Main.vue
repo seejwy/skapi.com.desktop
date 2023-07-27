@@ -299,7 +299,6 @@ function getServices(gs) {
     }
 
     gs.then(services => {
-        console.log(services)
         let region = skapi.region_list?.[serviceId.substring(0, 4)];
         if (!region) {
             // region does not exists

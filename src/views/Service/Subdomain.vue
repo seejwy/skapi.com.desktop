@@ -4,7 +4,8 @@
         .overlayContainerTitle Create Subdomain
         .input
             label Subdomain
-            sui-input(type="text" placeholder="Name of Subdomain" :value='inputdomain' @input="(e) => inputdomain = e.target.value" required)
+            sui-input(type="text" placeholder="Name of Subdomain" :value='inputdomain' @input="(e) => inputdomain = e.target.value")
+            .error {{ errorMessage }}
         sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
         SubmitButton(:loading="isDisabled") Save
 </template>
@@ -21,24 +22,26 @@ const emit = defineEmits(['close']);
 let service = inject('service');
 let isDisabled = ref(false);
 let inputdomain = ref(null);
+const errorMessage = ref('');
 
 const create = async() => {
+    errorMessage.value = '';
     isDisabled.value = true;
-    try {
-        await skapi.registerSubdomain({
-            service: service.value.service,
-            subdomain: inputdomain.value,
-            exec: 'register'
-        }).then(() => {
-            service.value.subdomain = inputdomain.value;
-        })
-    } catch(e) {
-        console.log(e);
+
+    await skapi.registerSubdomain({
+        service: service.value.service,
+        subdomain: inputdomain.value,
+        exec: 'register'
+    }).then(() => {
+        service.value.subdomain = inputdomain.value;
         isDisabled.value = false;
-    } finally {
+        emit('close', '');
+    }).catch((err) => {
+        console.log(err);
         isDisabled.value = false;
-    }
-    emit('close', '');
+        errorMessage.value = "Please set at least 4 letters";
+        throw err;
+    });
 }
 </script>
 
@@ -73,6 +76,11 @@ const create = async() => {
         }
         sui-input {
             width: 100%;
+        }
+        .error {
+            margin-top: 10px;
+            text-align: left;
+            color: red;
         }
     }
 }

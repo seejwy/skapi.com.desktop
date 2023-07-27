@@ -548,45 +548,44 @@ const deleteFiles = () => {
     skapi.deleteHostFile({
         keys: selectedFiles.value,
         service: service.value.service,
-    })
-        .then(async (res) => {
-            selectedFiles.value.forEach((path) => {
-                const regex = /^.*?\//;
-                let result = path.replace(regex, "");
-                let pathArray = path.split("/");
-                let subdomain = pathArray[0];
-                let index;
+    }).then(async (res) => {
+        selectedFiles.value.forEach((path) => {
+            const regex = /^.*?\//;
+            let result = path.replace(regex, "");
+            let pathArray = path.split("/");
+            let subdomain = pathArray[0];
+            let index;
 
-                if (result[result.length - 1] === "/") {
-                    index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
-                        return path.name === pathArray[pathArray.length - 2] + "/";
-                    });
-                } else {
-                    index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
-                        return path.name === extractFileName(result);
-                    });
-                }
+            if (result[result.length - 1] === "/") {
+                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                    return path.name === pathArray[pathArray.length - 2] + "/";
+                });
+            } else {
+                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                    return path.name === extractFileName(result);
+                });
+            }
+
+            service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
+
+            if (service.value.files[`${subdomain}${currentDirectory.value}`].list.length <= 0) {
+                let oldDirectory = currentDirectory.value;
+                let newDirectory = currentDirectory.value.split("/");
+                newDirectory.splice(-2);
+                currentDirectory.value = newDirectory.join("/") + "/";
+                let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
+                index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
+                    return path.name === folderToDelete;
+                });
 
                 service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
-
-                if (service.value.files[`${subdomain}${currentDirectory.value}`].list.length <= 0) {
-                    let oldDirectory = currentDirectory.value;
-                    let newDirectory = currentDirectory.value.split("/");
-                    newDirectory.splice(-2);
-                    currentDirectory.value = newDirectory.join("/") + "/";
-                    let folderToDelete = oldDirectory.replace(currentDirectory.value, "");
-                    index = service.value.files[`${subdomain}${currentDirectory.value}`].list.findIndex((path) => {
-                        return path.name === folderToDelete;
-                    });
-
-                    service.value.files[`${subdomain}${currentDirectory.value}`].list.splice(index, 1);
-                }
-            });
-
-            isDeleting.value = false;
-            selectedFiles.value = [];
-            await getMoreDirectory();
+            }
         });
+
+        isDeleting.value = false;
+        selectedFiles.value = [];
+        await getMoreDirectory();
+    });
 };
 
 const jumpto = (index) => {
@@ -780,6 +779,17 @@ if (!service.value.hasOwnProperty("storage")) {
         service.value.storage = storage.cloud + storage.database + storage.email;
     });
 }
+
+watch(() => isEmpty.value,
+    async () => {
+        await nextTick();
+        if (service.value.files.length === 0) {
+            isEmpty.value = true;
+        } else {
+            isEmpty.value = false;
+        }
+    }
+);
 
 watch(() => isEdit.value,
     async () => {
@@ -1248,7 +1258,8 @@ onMounted(() => {
 
 .directoryFiles {
     max-height: 500px;
-    overflow: scroll;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .filesContainer {

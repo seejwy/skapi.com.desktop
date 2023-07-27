@@ -1,42 +1,42 @@
 <template lang="pug">
 .overlayContainer(:loading="isDisabled || null")
-    .uploadBtn
-        sui-button.lineButton(@click="addFileButtonHandler" :disabled="isSaving")  + Files
-        sui-button.lineButton(@click="addFolderButtonHandler" :disabled="isSaving")  + Folders
-        .delete(@click="deleteFiles" :disabled="!isSaving || !selectedFiles?.length")
-            Icon trash
-        input(ref="folderUpload" type="file" webkitdirectory multiple hidden @change="e => addFolders(e)")
-        input(ref="fileUpload" type="file" multiple hidden @change="e => addFiles(e)")
-    .fileUploadArea(@dragenter.stop.prevent="" @dragover.stop.prevent="" @drop.stop.prevent="e=>onDrop(e, recordIndex)")
-        input(hidden type="file" @change="e=>addFiles(e, recordIndex, index)" multiple :disabled="isSaving")
-        div
-            Icon attached
-            span(style="margin-right: 6px;") Drag and Drop Folders or Files here
-        template(v-if="service.files" style="padding:10px 0;")
-            label(v-for="(url, name) in service?.files" style="border-radius: 12px; margin-top: 8px; padding: 8px 12px; background: #656565")
-                sui-input(type="checkbox")
-                    a(:href="url" download) {{ name }}{{ name }}
-        template(v-else)
-            div.noFiles(style="display:flex; flex-wrap:wrap;")
-                div.title No Files
-                p You have not uploaded any files
-        br
-        br
-    .filesContainer(v-if="Object.keys(fileList).length" style="padding:10px 0;")
-        label.file(v-for="(file, path) in fileList")
-            sui-input(v-if="!isSaving && !isComplete" type="checkbox" :value="path" :disabled="isSaving" :checked="selectedFiles.includes(path)" @change="selectionHandler")
-            .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.currentProgress > 0 && file.currentProgress < 100, 'complete': file.currentProgress === 100, 'failed': file.progress === false}" :style="{'--progress': 'conic-gradient(#5AD858 ' + (file.currentProgress ? file.currentProgress * 3.6 : 0) + 'deg, rgba(255,255,255,.1) 0deg)'}")
-                .circle
-                .circle
-            .pathWrapper
-                span.path {{ path }}
-    .filesContainer(v-else style="display:flex; align-items:center; justify-content:center;")
-        div.noFiles(style="display:flex; flex-wrap:wrap;")
-            div.title No Files
-            p You have not uploaded any files
-    .uploadBtn
-        sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
-        sui-button(:disabled="!Object.keys(fileList).length" @click="uploadFiles") Upload
+  .uploadBtn
+    sui-button.lineButton(@click="addFileButtonHandler" :disabled="isSaving")  + Files
+    sui-button.lineButton(@click="addFolderButtonHandler" :disabled="isSaving")  + Folders
+    .delete(@click="deleteFiles" :disabled="!isSaving || !selectedFiles?.length")
+      Icon trash
+    input(ref="folderUpload" type="file" webkitdirectory multiple hidden @change="e => addFolders(e)")
+    input(ref="fileUpload" type="file" multiple hidden @change="e => addFiles(e)")
+  .fileUploadArea(@dragenter.stop.prevent="" @dragover.stop.prevent="" @drop.stop.prevent="e=>onDrop(e, recordIndex)")
+    input(hidden type="file" @change="e=>addFiles(e, recordIndex, index)" multiple :disabled="isSaving")
+    div
+      Icon attached
+      span(style="margin-right: 6px;") Drag and Drop Folders or Files here
+    template(v-if="service.files" style="padding:10px 0;")
+      label(v-for="(url, name) in service?.files" style="border-radius: 12px; margin-top: 8px; padding: 8px 12px; background: #656565")
+        sui-input(type="checkbox")
+          a(:href="url" download) {{ name }}{{ name }}
+    template(v-else)
+      div.noFiles(style="display:flex; flex-wrap:wrap;")
+        div.title No Files
+        p You have not uploaded any files
+    br
+    br
+  .filesContainer(v-if="Object.keys(fileList).length" style="padding:10px 0;")
+    label.file(v-for="(file, path) in fileList")
+      sui-input(v-if="!isSaving && !isComplete" type="checkbox" :value="path" :disabled="isSaving" :checked="selectedFiles.includes(path)" @change="selectionHandler")
+      .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.currentProgress > 0 && file.currentProgress < 100, 'complete': file.currentProgress === 100, 'failed': file.progress === false}" :style="{'--progress': 'conic-gradient(#5AD858 ' + (file.currentProgress ? file.currentProgress * 3.6 : 0) + 'deg, rgba(255,255,255,.1) 0deg)'}")
+        .circle
+        .circle
+      .pathWrapper
+        span.path {{ path }}
+  .filesContainer(v-else style="display:flex; align-items:center; justify-content:center;")
+    div.noFiles(style="display:flex; flex-wrap:wrap;")
+      div.title No Files
+      p You have not uploaded any files
+  .uploadBtn
+    sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
+    sui-button(:disabled="!Object.keys(fileList).length" @click="uploadFiles") Upload
 </template>
 <!-- script below -->
 <script setup>
@@ -219,8 +219,35 @@ const uploadFiles = async () => {
       return false;
     }
 
-    directory.list.push(fileObj); // if (directory.endOfList) { // let index = binarySearch(fileObj); // if (directory.list[index]?.name === fileObj.name) { //     directory.list[index] = fileObj; // } else { //     if(directory.list[index].type === 'folder') { //         index++; //     } //     directory.list.splice(index, 0, fileObj); // } // } else { //     let index = binarySearch(fileObj); //     if(index < directory.list.length) { //         if (directory.list[index]?.name === fileObj.name) { //             directory.list[index] = fileObj; //         } else { //             directory.list.splice(index, 0, fileObj); //         } //     } else if(directory.list[index]?.name === fileObj.name) { //         directory.list[index] = fileObj; //     } // }
+    // directory.list.push(fileObj); // if (directory.endOfList) { // let index = binarySearch(fileObj); // if (directory.list[index]?.name === fileObj.name) { //     directory.list[index] = fileObj; // } else { //     if(directory.list[index].type === 'folder') { //         index++; //     } //     directory.list.splice(index, 0, fileObj); // } // } else { //     let index = binarySearch(fileObj); //     if(index < directory.list.length) { //         if (directory.list[index]?.name === fileObj.name) { //             directory.list[index] = fileObj; //         } else { //             directory.list.splice(index, 0, fileObj); //         } //     } else if(directory.list[index]?.name === fileObj.name) { //         directory.list[index] = fileObj; //     } // }
+
+    function binarySearch(fileObj) {
+      let left = 0;
+      let right = directory.list.length - 1;
+
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+
+        if (directory.list[mid].name === fileObj.name) {
+          return mid;
+        } else if (directory.list[mid].name < fileObj.name) {
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+
+      return -1;
+    }
+
+    let binaryIndex = binarySearch(fileObj);
+    if (binaryIndex >= 0) {
+      directory.list[binaryIndex] = fileObj;
+    } else {
+      directory.list.push(fileObj);
+    }
   }
+  
   let formData = new FormData();
 
   for (let key in fileList.value) {
@@ -353,6 +380,7 @@ const onDrop = (event) => {
   //   max-width: 100%;
   max-width: 800px;
   border-radius: 8px;
+
   .input {
     margin: 20px auto;
 
@@ -385,6 +413,7 @@ const onDrop = (event) => {
       padding: 8px 8px;
     }
   }
+
   .delete {
     display: inline-block;
   }
@@ -409,7 +438,7 @@ const onDrop = (event) => {
     margin-bottom: 0;
   }
 
-  & > div > * {
+  &>div>* {
     display: inline-block;
 
     &:nth-child(2) {
@@ -483,7 +512,7 @@ const onDrop = (event) => {
         position: absolute;
         opacity: 0;
 
-        & ~ .circle {
+        &~.circle {
           border: 1px solid white;
           opacity: 0;
         }
@@ -515,7 +544,7 @@ const onDrop = (event) => {
         .circle {
           animation: ripple 0.5s ease;
 
-          & ~ .circle {
+          &~.circle {
             animation: smallRipple 0.3s ease;
           }
         }
@@ -574,7 +603,7 @@ const onDrop = (event) => {
       }
     }
 
-    & > sui-input {
+    &>sui-input {
       margin-right: 16px;
     }
   }
@@ -602,12 +631,12 @@ const onDrop = (event) => {
   right: 16px;
   overflow: hidden;
 
-  & > sui-button {
+  &>sui-button {
     z-index: 2;
   }
 
   &,
-  & > div {
+  &>div {
     display: flex;
     flex-direction: column-reverse;
     align-items: center;

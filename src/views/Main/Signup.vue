@@ -31,7 +31,7 @@
                         sui-input(
                             type="checkbox" 
                             @input="(e)=> form.subscribe = e.target.checked"
-                            checked)
+                            :checked="form.subscribe ? true : null")
                         span I agree to receive information and news letters from Skapi via Email.
                 SubmitButton Continue
         template(v-if="step >= 2")
@@ -124,7 +124,7 @@ let form = reactive({
     email: '',
     password: '',
     password_confirm: '',
-    subscribe: false,
+    subscribe: true,
     misc: {
         role: '',
         feature: [],

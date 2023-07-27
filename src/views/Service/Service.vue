@@ -646,18 +646,26 @@ const deleteService = () => {
 let intervalId;
 
 async function checkServiceStatus() {
-    console.log('start')
-    try {
-        console.log('getget');
+    console.log('start');
+    let serviceId = service.value.service;
 
-        if (!service.value.subdomain) {
-            console.log('dododo');
-            domain.value = false;
-            deleting.value = false;
-            clearInterval(intervalId);
+    let services = await skapi.getServices(service.value.service);
+    let region = skapi.region_list?.[serviceId.substring(0, 4)];
+
+    if (services[region]) {
+        for (let s of services[region]) {
+            if (s.service === serviceId) {
+                service.value = s;
+                break;
+            }
         }
-    } catch (err) {
-        console.log(err);
+    }
+
+    if (!service.value.subdomain) {
+        console.log('no subdomain');
+        domain.value = false;
+        deleting.value = false;
+        clearInterval(intervalId);
     }
 }
 
@@ -678,8 +686,7 @@ const deleteSubdomain = async () => {
             subdomain: service.value.subdomain,
             exec: "remove",
         }).then(() => {
-            deleting.value = true;
-            intervalId = setInterval(checkServiceStatus, 5000);
+            // deleting.value = true;
         });
     } catch (e) {
         deleteErrorMessage.value = e.message;
@@ -691,6 +698,7 @@ const deleteSubdomain = async () => {
         domain.value = false;
         isDisabled.value = false;
         deleteSubdomainOverlay.value.close();
+        intervalId = setInterval(checkServiceStatus, 3000);
     }
 };
 
@@ -1047,12 +1055,13 @@ onMounted(() => {
 
 .emailGrid {
     p {
-        color: rgba(255,255,255,0.7);
+        color: rgba(255, 255, 255, 0.7);
 
         a {
             color: #fff;
         }
     }
+
     &Item {
         margin-bottom: 20px;
         overflow: hidden;
@@ -1084,7 +1093,7 @@ onMounted(() => {
     justify-content: space-between;
     gap: 20px;
 
-    &Item{
+    &Item {
         &.btn {
             display: flex;
             flex-wrap: wrap;
@@ -1095,10 +1104,10 @@ onMounted(() => {
             svg {
                 margin-bottom: 10px;
             }
-    
+
             span {
                 width: 100%;
-                text-align:center;
+                text-align: center;
             }
         }
 

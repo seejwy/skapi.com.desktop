@@ -149,19 +149,20 @@ export default class Admin extends Skapi {
 
     async getServices(id) {
         await this.checkAdmin();
-        if (id) {
-            let set = await this.request('get-services', id ? { service_id: id } : null, {
-                auth: true
-            });
-            for (s in set) {
-                this.services[s] = set[s];
-            }
-        }
-        else {
-            this.services = await this.request('get-services', id ? { service_id: id } : null, {
-                auth: true
-            });
-        }
+        // if (id) {
+        //     let set = await this.request('get-services', id ? { service_id: id } : null, {
+        //         auth: true
+        //     });
+        //     console.log({set})
+        //     for (let s in set) {
+        //         this.services[s] = set[s];
+        //     }
+        // }
+        // else {
+        this.services = await this.request('get-services', id ? { service_id: id } : null, {
+            auth: true
+        });
+        // }
 
         return this.services;
     }

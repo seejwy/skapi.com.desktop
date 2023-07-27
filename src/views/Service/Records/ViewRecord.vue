@@ -475,6 +475,10 @@ const deleteRecord = () => {
 			record_id: [props.record.record_id]
 		}).then(() => {
 			table.number_of_records--;
+			if(table.number_of_records === 0) {
+				let idx = tableList.findIndex(tb => tb === table.table);
+				tableList.splice(idx, 1);
+			}
 			table.records.list.splice(tableIndex, 1);
 			if(table.records.list.length === 0) {
 				let indexToDelete = recordTables.value.list.findIndex(t => {
@@ -721,7 +725,7 @@ const save = async () => {
 					if(table.number_of_records <= 0) {
 						recordTables.value.list.splice(index, 1);
 					}
-				} else if(table.table === props.record.table.name) {
+				} else if(table.table === props.record.table.table) {
 					table.number_of_records++;
 					let idx = table.records.list.findIndex((record) => {
 						return record.uploaded > props.record.uploaded

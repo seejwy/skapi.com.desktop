@@ -768,6 +768,7 @@ const refreshCDN = () => {
             service: service.value.service,
             subdomain: service.value.subdomain
         }).catch((e) => {
+            alert("We are unable to process your request as the previous request is still ongoing. Please try again later.")
             console.log({ e });
         }).finally(() => {
             isCDNRefreshing.value = false;

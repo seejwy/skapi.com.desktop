@@ -254,10 +254,10 @@ const uploadFiles = async () => {
             fileList.value[e.currentFile.name].currentProgress = 0;
           if (!interval) {
             interval = setInterval(() => {
-              console.log({
-                fileName: fileList.value[e.currentFile.name].file.name,
-                progress: fileList.value[e.currentFile.name].currentProgress,
-              });
+              // console.log({
+              //   fileName: fileList.value[e.currentFile.name].file.name,
+              //   progress: fileList.value[e.currentFile.name].currentProgress,
+              // });
               try {
                 if (
                   fileList.value[e.currentFile.name].currentProgress < progress
@@ -282,6 +282,8 @@ const uploadFiles = async () => {
           }
         }
       },
+    }).then(() => {
+      getMoreDirectory(currentDirectory.value);
     });
   } catch (e) {
     console.log({ e });

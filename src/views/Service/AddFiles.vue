@@ -3,7 +3,7 @@
   .uploadBtn
     sui-button.lineButton(@click="addFileButtonHandler" :disabled="isSaving")  + Files
     sui-button.lineButton(@click="addFolderButtonHandler" :disabled="isSaving")  + Folders
-    .delete(@click="deleteFiles" :disabled="!isSaving || !selectedFiles?.length")
+    .delete(@click="deleteFiles" :disabled="(isSaving || !selectedFiles?.length) || null")
       Icon trash
     input(ref="folderUpload" type="file" webkitdirectory multiple hidden @change="e => addFolders(e)")
     input(ref="fileUpload" type="file" multiple hidden @change="e => addFiles(e)")
@@ -398,6 +398,10 @@ const onDrop = (event) => {
 
   .delete {
     display: inline-block;
+
+    &[disabled] {
+      opacity: .4;
+    }
   }
 }
 

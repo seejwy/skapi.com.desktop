@@ -696,6 +696,7 @@ const deleteSubdomain = async () => {
         deleting.value = true;
         domain.value = false;
         isDisabled.value = false;
+        confirmationCode.value = "";
         deleteSubdomainOverlay.value.close();
         intervalId = setInterval(checkServiceStatus, 3000);
     }

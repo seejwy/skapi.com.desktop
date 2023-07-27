@@ -197,7 +197,7 @@ template(v-else)
             .filesContainer
                 .fetching(v-if="isFetching && !service?.files?.[service.subdomain+currentDirectory]?.list?.length" style="text-align:center;")
                     Icon.animationRotation refresh
-                template(v-else-if="isEmpty")
+                template(v-else-if="isEmpty || service?.files[service.subdomain+currentDirectory]?.list?.length == 0")
                     div.noFiles
                         div.title No Files
                         p You have not uploaded any files
@@ -779,17 +779,6 @@ if (!service.value.hasOwnProperty("storage")) {
         service.value.storage = storage.cloud + storage.database + storage.email;
     });
 }
-
-watch(() => isEmpty.value,
-    async () => {
-        await nextTick();
-        if (service.value.files.length === 0) {
-            isEmpty.value = true;
-        } else {
-            isEmpty.value = false;
-        }
-    }
-);
 
 watch(() => isEdit.value,
     async () => {

@@ -22,19 +22,18 @@
                 p You have not uploaded any files
         br
         br
-    .filesContainer
-        template(v-if="Object.keys(fileList).length")
-            label.file(v-for="(file, path) in fileList")
-                sui-input(v-if="!isSaving && !isComplete" type="checkbox" :value="path" :disabled="isSaving" :checked="selectedFiles.includes(path)" @change="selectionHandler")
-                .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.currentProgress > 0 && file.currentProgress < 100, 'complete': file.currentProgress === 100, 'failed': file.progress === false}" :style="{'--progress': 'conic-gradient(#5AD858 ' + (file.currentProgress ? file.currentProgress * 3.6 : 0) + 'deg, rgba(255,255,255,.1) 0deg)'}")
-                    .circle
-                    .circle
-                .pathWrapper
-                    span.path {{ path }}
-        template(v-else)
-            div.noFiles(style="display:flex; flex-wrap:wrap;")
-                div.title No Files
-                p You have not uploaded any files
+    .filesContainer(v-if="Object.keys(fileList).length" style="padding:10px 0;")
+        label.file(v-for="(file, path) in fileList")
+            sui-input(v-if="!isSaving && !isComplete" type="checkbox" :value="path" :disabled="isSaving" :checked="selectedFiles.includes(path)" @change="selectionHandler")
+            .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.currentProgress > 0 && file.currentProgress < 100, 'complete': file.currentProgress === 100, 'failed': file.progress === false}" :style="{'--progress': 'conic-gradient(#5AD858 ' + (file.currentProgress ? file.currentProgress * 3.6 : 0) + 'deg, rgba(255,255,255,.1) 0deg)'}")
+                .circle
+                .circle
+            .pathWrapper
+                span.path {{ path }}
+    .filesContainer(v-else style="display:flex; align-items:center; justify-content:center;")
+        div.noFiles(style="display:flex; flex-wrap:wrap;")
+            div.title No Files
+            p You have not uploaded any files
     .uploadBtn
         sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
         sui-button(:disabled="!Object.keys(fileList).length" @click="uploadFiles") Upload
@@ -254,10 +253,10 @@ const uploadFiles = async () => {
             fileList.value[e.currentFile.name].currentProgress = 0;
           if (!interval) {
             interval = setInterval(() => {
-              console.log({
-                fileName: fileList.value[e.currentFile.name].file.name,
-                progress: fileList.value[e.currentFile.name].currentProgress,
-              });
+              // console.log({
+              //   fileName: fileList.value[e.currentFile.name].file.name,
+              //   progress: fileList.value[e.currentFile.name].currentProgress,
+              // });
               try {
                 if (
                   fileList.value[e.currentFile.name].currentProgress < progress
@@ -283,14 +282,12 @@ const uploadFiles = async () => {
         }
       },
     }).then(() => {
-      getMoreDirectory(currentDirectory.value);
+      isSaving.value = false;
+      isComplete.value = true;
+      emit('close', '');
     });
   } catch (e) {
     console.log({ e });
-  } finally {
-    isSaving.value = false;
-    isComplete.value = true;
-    emit('close', '');
   }
 };
 
@@ -309,7 +306,7 @@ const onDrop = (event) => {
   };
 
   const getFileAsync = (item, path) => {
-    console.log(item, path);
+    // console.log(item, path);
 
     item.file((file) => {
       if (path) {
@@ -583,11 +580,6 @@ const onDrop = (event) => {
   }
 
   .noFiles {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
     border-radius: 8px;
 
     .title {
@@ -598,6 +590,8 @@ const onDrop = (event) => {
     .title,
     p {
       opacity: 0.4;
+      display: block;
+      margin: 0 auto;
     }
   }
 }

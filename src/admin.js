@@ -153,8 +153,9 @@ export default class Admin extends Skapi {
             let set = await this.request('get-services', id ? { service_id: id } : null, {
                 auth: true
             });
-            for (s in set) {
-                this.services[s] = set[s];
+
+            for (let reg in set) {
+                this.services[reg] = set[reg];
             }
         }
         else {

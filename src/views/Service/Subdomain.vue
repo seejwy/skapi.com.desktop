@@ -39,7 +39,7 @@ const create = async() => {
     }).catch((err) => {
         console.log(err);
         isDisabled.value = false;
-        errorMessage.value = "Please set at least 4 letters";
+        errorMessage.value = "This subdomain has already been taken.";
         throw err;
     });
 }

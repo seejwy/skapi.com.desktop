@@ -528,7 +528,7 @@ const onDrop = (event) => {
         width: 15px;
         height: 15px;
         border-radius: 50%;
-        background-color: #333;
+        background-color: #505050;
       }
 
       &.started {

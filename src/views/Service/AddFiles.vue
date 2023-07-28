@@ -38,7 +38,7 @@
       div.title No Files
       p You have not uploaded any files
   .uploadBtn
-    sui-button.textButton(type="button" style="margin-right: 16px;" @click="emit('close', '')") Cancel
+    sui-button.textButton(type="button" :disabled="isSaving" style="margin-right: 16px;" @click="emit('close', '')") Cancel
     sui-button(:disabled="!Object.keys(fileList).length" @click="uploadFiles") Upload
 </template>
 <!-- script below -->

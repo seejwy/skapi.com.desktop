@@ -197,7 +197,7 @@ template(v-else)
             .filesContainer
                 .fetching(v-if="isFetching && !service?.files?.[service.subdomain+currentDirectory]?.list?.length" style="text-align:center;")
                     Icon.animationRotation refresh
-                template(v-else-if="isEmpty || service?.files[service.subdomain+currentDirectory]?.list?.length == 0")
+                template(v-else-if="service?.files[service.subdomain+currentDirectory]?.list?.length == 0")
                     div.noFiles
                         div.title No Files
                         p You have not uploaded any files
@@ -311,7 +311,6 @@ const isSetting404 = ref(false);
 const isDisabled = ref(false);
 const isFetching = ref(false);
 const isDeleting = ref(false);
-const isEmpty = ref(false);
 const isCDNRefreshing = ref(false);
 const domain = ref(false);
 const deleting = ref(false);
@@ -478,9 +477,6 @@ const getDirectory = (directory = '/') => {
     skapi.listHostDirectory(params).then((files) => {
         if (!service.value.hasOwnProperty("files")) {
             service.value.files = {};
-            isEmpty.value = true;
-        } else {
-            isEmpty.value = false;
         }
         if (
             !service.value.files[
@@ -493,12 +489,6 @@ const getDirectory = (directory = '/') => {
                 endOfList: files.endOfList,
                 list: [],
             };
-        }
-
-        if (files.list.length == 0) {
-            isEmpty.value = true;
-        } else {
-            isEmpty.value = false;
         }
 
         files.list.forEach((file) => {

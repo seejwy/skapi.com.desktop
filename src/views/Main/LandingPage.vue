@@ -130,7 +130,6 @@ let codeCopy = (e) => {
     doc.remove();
 
     e.target.parentNode.classList.add('copied');
-    console.log(e.target.parentNode)
     setTimeout(() => {
         e.target.parentNode.classList.remove('copied');
     }, 1000);

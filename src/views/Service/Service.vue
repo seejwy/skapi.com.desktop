@@ -430,7 +430,6 @@ const copy = (e) => {
     doc.remove();
 
     e.target.parentNode.parentNode.classList.add('copied');
-    console.log(e.target.parentNode.parentNode)
     setTimeout(() => {
         e.target.parentNode.parentNode.classList.remove('copied');
     }, 1000);

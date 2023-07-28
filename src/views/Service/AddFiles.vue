@@ -265,8 +265,8 @@ const uploadFiles = async () => {
       service: service.value.service,
       request: "host",
       progress: (e) => {
-        console.log({ e });
-        console.log(fileList.value[e.currentFile.name]);
+        // console.log({ e });
+        // console.log(fileList.value[e.currentFile.name]);
         if (abortUpload === e.currentFile.name && e.progress !== 100) {
           e.abort();
           fileList.value[e.currentFile.name].progress = false;

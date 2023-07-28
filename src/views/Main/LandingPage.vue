@@ -122,7 +122,7 @@ let barControl = () => {
     }
 }
 
-let codeCopy = () => {
+let codeCopy = (e) => {
     let doc = document.createElement('textarea');
     doc.textContent = document.querySelector('.preCode pre code').textContent;
     document.body.append(doc);
@@ -130,7 +130,11 @@ let codeCopy = () => {
     document.execCommand('copy');
     doc.remove();
 
-    alert('The code has been copied.');
+    e.target.parentNode.classList.add('copied');
+    console.log(e.target.parentNode)
+    setTimeout(() => {
+        e.target.parentNode.classList.remove('copied');
+    }, 1000);
 }
 
 onMounted(() => {
@@ -421,6 +425,25 @@ main {
                             height: 24px;
                             filter: invert(100%);
                             cursor: pointer;
+                        }
+
+                        &::before {
+                            position: absolute;
+                            display: block;
+                            right: 32px;
+                            top: 2px;
+                            text-align: center;
+                            font-size: 12px;
+                            color: rgba(255, 255, 255, 0.5);
+                            border-radius: 4px;
+                            padding: 4px;
+                            content: "Copied";
+                            transition: opacity .4s;
+                            opacity: 0;
+                        }
+
+                        &.copied::before {
+                            opacity: 1;
                         }
                     }
                 }

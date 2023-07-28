@@ -69,7 +69,7 @@ template(v-else)
                         .name Welcome
                         .value {{ service?.email_triggers?.template_setters?.welcome }}
                         .actions(@click="copy")
-                            Icon copy   
+                            Icon copy
                     .emailGridItem
                         .name Verification
                         .value {{ service?.email_triggers?.template_setters?.verification }}
@@ -429,7 +429,11 @@ const copy = (e) => {
     document.execCommand('copy');
     doc.remove();
 
-    alert('The code has been copied.');
+    e.target.parentNode.parentNode.classList.add('copied');
+    console.log(e.target.parentNode.parentNode)
+    setTimeout(() => {
+        e.target.parentNode.parentNode.classList.remove('copied');
+    }, 1000);
 }
 
 const deleteServiceAsk = () => {
@@ -1083,6 +1087,25 @@ onMounted(() => {
         right: 15px;
         top: 50%;
         transform: translate(0, -50%);
+
+        &::before {
+            position: absolute;
+            display: block;
+            right: 32px;
+            top: 2px;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+            padding: 4px;
+            content: "Copied";
+            transition: opacity .4s;
+            opacity: 0;
+        }
+
+        &.copied::before {
+            opacity: 1;
+        }
     }
 }
 

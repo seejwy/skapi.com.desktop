@@ -3,7 +3,7 @@
   .uploadBtn
     sui-button.lineButton(@click="addFileButtonHandler" :disabled="isSaving")  + Files
     sui-button.lineButton(@click="addFolderButtonHandler" :disabled="isSaving")  + Folders
-    .delete(@click="deleteFiles" :disabled="!isSaving || !selectedFiles?.length")
+    .delete(@click="deleteFiles" :disabled="(isSaving || !selectedFiles?.length) || null")
       Icon trash
     input(ref="folderUpload" type="file" webkitdirectory multiple hidden @change="e => addFolders(e)")
     input(ref="fileUpload" type="file" multiple hidden @change="e => addFiles(e)")
@@ -25,9 +25,12 @@
   .filesContainer(v-if="Object.keys(fileList).length" style="padding:10px 0;")
     label.file(v-for="(file, path) in fileList")
       sui-input(v-if="!isSaving && !isComplete" type="checkbox" :value="path" :disabled="isSaving" :checked="selectedFiles.includes(path)" @change="selectionHandler")
-      .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.currentProgress > 0 && file.currentProgress < 100, 'complete': file.currentProgress === 100, 'failed': file.progress === false}" :style="{'--progress': 'conic-gradient(#5AD858 ' + (file.currentProgress ? file.currentProgress * 3.6 : 0) + 'deg, rgba(255,255,255,.1) 0deg)'}")
+      .progressBar(v-else @click="()=>abortUpload=path" :class="{'started': file.progress !== 100 && file.progress > 0, 'complete': file.isComplete, 'failed': file.progress === false}" :style="{'--num': file.progress}")
         .circle
         .circle
+        svg(viewBox="0 0 20 20")
+          circle(cx="10" cy="10" r="8")
+          circle(cx="10" cy="10" r="8")
       .pathWrapper
         span.path {{ path }}
   .filesContainer(v-else style="display:flex; align-items:center; justify-content:center;")
@@ -247,7 +250,7 @@ const uploadFiles = async () => {
       directory.list.push(fileObj);
     }
   }
-  
+
   let formData = new FormData();
 
   for (let key in fileList.value) {
@@ -273,45 +276,24 @@ const uploadFiles = async () => {
             numberOfFailedUploads.value++;
             filesToUpload.value--;
           }
-          progress = e.progress;
+
           fileList.value[e.currentFile.name].abort = e.abort;
           fileList.value[e.currentFile.name].progress = e.progress;
-          if (!fileList.value[e.currentFile.name].currentProgress)
-            fileList.value[e.currentFile.name].currentProgress = 0;
-          if (!interval) {
-            interval = setInterval(() => {
-              // console.log({
-              //   fileName: fileList.value[e.currentFile.name].file.name,
-              //   progress: fileList.value[e.currentFile.name].currentProgress,
-              // });
-              try {
-                if (
-                  fileList.value[e.currentFile.name].currentProgress < progress
-                ) {
-                  fileList.value[e.currentFile.name].currentProgress += 1;
-                }
-
-                if (
-                  fileList.value[e.currentFile.name].currentProgress ===
-                  progress
-                ) {
-                  filesToUpload.value--; // service.value.files[e.currentFile.name] = `https://${service.value.subdomain}.skapi.com/${e.currentFile.name}`
-                  saveToServiceFiles(e.currentFile);
-                  clearInterval(interval);
-                  interval = null;
-                }
-              } catch (e) {
-                clearInterval(interval);
-                throw e;
-              }
-            }, 5);
+          if (e.progress === 100) {
+            filesToUpload.value--;
+            saveToServiceFiles(e.currentFile);
+            setTimeout(() => {
+              fileList.value[e.currentFile.name].isComplete = true;
+            }, 500)
           }
         }
       },
     }).then(() => {
       isSaving.value = false;
       isComplete.value = true;
-      emit('close', '');
+      setTimeout(() => {
+        emit('close', '');
+      }, 500);
     });
   } catch (e) {
     console.log({ e });
@@ -416,6 +398,10 @@ const onDrop = (event) => {
 
   .delete {
     display: inline-block;
+
+    &[disabled] {
+      opacity: .4;
+    }
   }
 }
 
@@ -499,10 +485,29 @@ const onDrop = (event) => {
       vertical-align: middle;
       width: 20px;
       height: 20px;
-      background: var(--progress);
       border-radius: 50%;
       position: relative;
       margin-right: 16px;
+
+      svg {
+        transform: rotate(270deg);
+      }
+
+      svg circle {
+        height: 100%;
+        width: 100%;
+        fill: transparent;
+        stroke-width: 4;
+        stroke: rgba(255, 255, 255, .1);
+
+        &:nth-child(2) {
+          stroke-width: 4;
+          stroke: #5AD858;
+          stroke-dasharray: 63;
+          stroke-dashoffset: calc(63 - (63 * var(--num)) / 100);
+          transition: all .5s ease-in;
+        }
+      }
 
       .circle {
         border: 1px solid white;
@@ -527,7 +532,7 @@ const onDrop = (event) => {
         width: 15px;
         height: 15px;
         border-radius: 50%;
-        background-color: #333;
+        background-color: #505050;
       }
 
       &.started {
@@ -568,6 +573,10 @@ const onDrop = (event) => {
       }
 
       &.failed {
+        svg {
+          display: none;
+        }
+
         &::before {
           top: 0;
           left: 0;

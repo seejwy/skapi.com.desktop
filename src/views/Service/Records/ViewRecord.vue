@@ -759,23 +759,8 @@ const save = async () => {
 	};
 };
 
-const download = async (secureUrl, fileName) => {
-	try {
-		let download = await skapi.getBlob({url: secureUrl}, {service: serviceId});
-		let reader = new FileReader();
-		reader.readAsDataURL(download);
-		reader.onload = () => {
-			const file = reader.result;
-			let a = document.createElement('a');
-			a.href = file;
-			a.download = fileName;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-		}
-	} catch( e ) {
-		console.log({e});
-	}
+const download = async (secureUrl) => {
+	skapi.getFile(secureUrl, { dataType: 'download' });
 }
 
 const onDrop = (event, keyIndex) => {

@@ -700,6 +700,7 @@ const deleteSubdomain = async () => {
         deleting.value = true;
         domain.value = false;
         isDisabled.value = false;
+        confirmationCode.value = "";
         deleteSubdomainOverlay.value.close();
         intervalId = setInterval(checkServiceStatus, 3000);
     }
@@ -771,6 +772,7 @@ const refreshCDN = () => {
             service: service.value.service,
             subdomain: service.value.subdomain
         }).catch((e) => {
+            alert("We are unable to process your request as the previous request is still ongoing. Please try again later.")
             console.log({ e });
         }).finally(() => {
             isCDNRefreshing.value = false;

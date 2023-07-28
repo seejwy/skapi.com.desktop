@@ -1,6 +1,6 @@
 <template lang="pug">
 .overlayContainer(:loading="isDisabled || null")
-  .uploadBtn
+  .uploadBtn(style="margin-bottom:10px;")
     sui-button.lineButton(@click="addFileButtonHandler" :disabled="isSaving")  + Files
     sui-button.lineButton(@click="addFolderButtonHandler" :disabled="isSaving")  + Folders
     .delete(@click="deleteFiles" :disabled="(isSaving || !selectedFiles?.length) || null")
@@ -37,9 +37,9 @@
     div.noFiles(style="display:flex; flex-wrap:wrap;")
       div.title No Files
       p You have not uploaded any files
-  .uploadBtn
+  .uploadBtn(style="margin-top:10px;")
     sui-button.textButton(type="button" :disabled="isSaving" style="margin-right: 16px;" @click="emit('close', '')") Cancel
-    sui-button(:disabled="!Object.keys(fileList).length" @click="uploadFiles") Upload
+    SubmitButton(:disabled="!Object.keys(fileList).length" :loading="isSaving" @click="uploadFiles") Upload
 </template>
 <!-- script below -->
 <script setup>
@@ -48,6 +48,7 @@ import { state, skapi } from "@/main";
 import { useRouter } from "vue-router";
 
 import LoadingCircle from "@/components/LoadingCircle.vue";
+import SubmitButton from '@/components/SubmitButton.vue';
 import Icon from "@/components/Icon.vue";
 
 const emit = defineEmits(["close"]);
@@ -289,9 +290,9 @@ const uploadFiles = async () => {
         }
       },
     }).then(() => {
-      isSaving.value = false;
-      isComplete.value = true;
       setTimeout(() => {
+        isSaving.value = false;
+        isComplete.value = true;
         emit('close', '');
       }, 500);
     });
